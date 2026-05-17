@@ -106,6 +106,13 @@ bump_version() {
         return 0
     fi
 
+    local source_line
+    source_line=$(grep -E '^\s*source=' "${pkgbuild}" || true)
+    if echo "${source_line}" | grep -qE '\$\{?pkgver\}?|\$\{?pkgrel\}?'; then
+        log_warn "Source URL embeds pkgver/pkgrel — skipping auto-bump for '${pkgname}'. Set version manually when a new upstream release is published."
+        return 0
+    fi
+
     new_pkgver=$(date +%y.%m)
 
     if [[ "${new_pkgver}" != "${old_pkgver}" ]]; then

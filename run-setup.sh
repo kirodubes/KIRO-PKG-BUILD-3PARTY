@@ -85,40 +85,26 @@ trap 'on_error "$LINENO" "$BASH_COMMAND"' ERR
 ############################################################
 # Functions
 ############################################################
-configure_git() {
-    local project
-    project="$(basename "${SCRIPT_DIR}")"
+run_setups() {
+    log_section "Running setup.sh in each subdirectory of ${SCRIPT_DIR}"
 
-    log_section "Configuring git for project: ${project}"
-
-    git config --global pull.rebase false
-    sudo git config --system core.editor nano
-    git config --global push.default simple
-
-    if [[ "${SCRIPT_DIR}" == */EDU*/* ]]; then
-        log_info "https://github.com/erikdubois/${project}"
-        git config --global user.name "Erik Dubois"
-        git config --global user.email "erik.dubois@gmail.com"
-        git -C "${SCRIPT_DIR}" remote set-url origin "git@github.com:erikdubois/${project}"
-        log_success "Git configured — remote set to git@github.com:erikdubois/${project}"
-    elif [[ "${SCRIPT_DIR}" == */KIRO/* ]]; then
-        log_info "https://github.com/kirodubes/${project}"
-        git config --global user.name "Kiro Dubes"
-        git config --global user.email "kirodubes@gmail.com"
-        git -C "${SCRIPT_DIR}" remote set-url origin "git@github.com-edu:kirodubes/${project}"
-        log_success "Git configured — remote set to git@github.com-edu:kirodubes/${project}"
-    else
-        log_error "Cannot determine identity — path contains neither EDU nor KIRO: ${SCRIPT_DIR}"
-        exit 1
-    fi
+    for dir in "${SCRIPT_DIR}"/*/; do
+        [[ -d "$dir" ]] || continue
+        if [[ -f "${dir}setup.sh" ]]; then
+            log_info "Running setup.sh in $(basename "$dir")"
+            bash "${dir}setup.sh"
+            log_success "Done: $(basename "$dir")"
+        else
+            echo "${CYAN}Skipping $(basename "$dir") — no setup.sh${RESET}"
+        fi
+    done
 }
 
 ############################################################
 # Main
 ############################################################
 main() {
-    configure_git
-
+    run_setups
     log_success "$(basename "$0") done"
 }
 
