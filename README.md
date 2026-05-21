@@ -8,21 +8,21 @@ Each subdirectory is a self-contained package build: `PKGBUILD`, a `build.sh` wr
 
 ## Packages
 
-| Package | Description |
-|---|---|
-| `arc-gtk-theme` | Flat GTK 2/3/4 theme with transparency; also builds `arc-solid-gtk-theme` |
-| `ckb-next-git` | Corsair keyboard and mouse input driver (git) |
-| `flameshot-git` | Screenshot tool (git) |
-| `gnome-bluetooth` | GNOME Bluetooth subsystem (legacy) |
-| `hardcode-fixer-git` | Fixes hardcoded application icons (git) |
-| `lastpass` | Universal LastPass installer for Firefox, Chrome, and Opera |
-| `libpamac-aur` | Pamac package manager library (AUR variant) |
-| `opera-ffmpeg-codecs-bin` | Proprietary FFmpeg codecs for Opera |
-| `pacman-hook-kernel-install` | Pacman hooks for kernel-install |
-| `pamac-aur` | GTK package manager with AUR and Appstream support |
-| `sparklines-git` | Sparklines for the shell (git) |
-| `ttf-material-design-iconic-font` | Material Design Iconic Font |
-| `wttr` | Weather check script via wttr.in |
+| Package                           | Description                                                               |
+|-----------------------------------|---------------------------------------------------------------------------|
+| `arc-gtk-theme`                   | Flat GTK 2/3/4 theme with transparency; also builds `arc-solid-gtk-theme` |
+| `ckb-next-git`                    | Corsair keyboard and mouse input driver (git)                             |
+| `flameshot-git`                   | Screenshot tool (git)                                                     |
+| `gnome-bluetooth`                 | GNOME Bluetooth subsystem (legacy)                                        |
+| `hardcode-fixer-git`              | Fixes hardcoded application icons (git)                                   |
+| `lastpass`                        | Universal LastPass installer for Firefox, Chrome, and Opera               |
+| `libpamac-aur`                    | Pamac package manager library (AUR variant)                               |
+| `opera-ffmpeg-codecs-bin`         | Proprietary FFmpeg codecs for Opera                                       |
+| `pacman-hook-kernel-install`      | Pacman hooks for kernel-install                                           |
+| `pamac-aur`                       | GTK package manager with AUR and Appstream support                        |
+| `sparklines-git`                  | Sparklines for the shell (git)                                            |
+| `ttf-material-design-iconic-font` | Material Design Iconic Font                                               |
+| `wttr`                            | Weather check script via wttr.in                                          |
 
 ---
 

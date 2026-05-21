@@ -8,13 +8,13 @@ Third-party / AUR package builds for the `nemesis_repo` (Kiro Arch Linux distro)
 
 ## Key scripts
 
-| Script | Role |
-|---|---|
-| `build.sh` | Shared per-package build template — copied into every package dir |
-| `1-build-all-packages.sh` | Iterates all package dirs, runs each `build.sh`, then calls `~/EDU/nemesis_repo/up.sh` to publish |
-| `copy-files-to-all-folders.sh` | Propagates the root `build.sh` to every package subdir that already has one |
-| `up.sh` | Git pull → optional `chaotic.sh`/`repo.sh` → commit + push |
-| `setup.sh` | One-time git remote configuration (`git@github.com-edu:erikdubois/<project>`) |
+| Script                         | Role                                                                                              |
+|--------------------------------|---------------------------------------------------------------------------------------------------|
+| `build.sh`                     | Shared per-package build template — copied into every package dir                                 |
+| `1-build-all-packages.sh`      | Iterates all package dirs, runs each `build.sh`, then calls `~/EDU/nemesis_repo/up.sh` to publish |
+| `copy-files-to-all-folders.sh` | Propagates the root `build.sh` to every package subdir that already has one                       |
+| `up.sh`                        | Git pull → optional `chaotic.sh`/`repo.sh` → commit + push                                        |
+| `setup.sh`                     | One-time git remote configuration (`git@github.com-edu:erikdubois/<project>`)                     |
 
 ## Per-package build flow (`build.sh`)
 
