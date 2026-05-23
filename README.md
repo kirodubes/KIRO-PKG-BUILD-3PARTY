@@ -1,3 +1,7 @@
+<p align="center">
+  <img src="kiro.jpg" alt="Kiro" width="220" />
+</p>
+
 # edu-pkgbuild-3party
 
 Third-party and AUR package builds for the [nemesis_repo](https://github.com/erikdubois/nemesis_repo) — the custom Arch Linux package repository used by the [Kiro](https://github.com/erikdubois/kiro-iso) distribution.
