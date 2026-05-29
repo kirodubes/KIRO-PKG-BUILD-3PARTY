@@ -1,0 +1,157 @@
+# Maintainer (Kiro/nemesis_repo fork): Erik Dubois <erik.dubois@gmail.com>
+# Upstream Maintainer: Vladislav Nepogodin <nepogodin.vlad@gmail.com>
+# Upstream: https://github.com/CachyOS/chwd
+#
+# ─── Kiro downstream rationale ────────────────────────────────────────────────
+# CachyOS upstream chwd 1.21.0 ships profiles/pci/graphic_drivers/profiles.toml
+# with the PCI vendor_ids of the [virtualbox] and [vmware] profiles SWAPPED:
+#   [virtualbox]  vendor_ids = "15AD"   (← 15AD is VMware's vendor ID)
+#   [vmware]      vendor_ids = "80ee"   (← 80EE is InnoTek/VirtualBox)
+# Correct mapping per /usr/share/hwdata/pci.ids:
+#   80EE = InnoTek Systemberatung GmbH (VirtualBox)
+#   15AD = VMware, Inc.
+# Effect of the upstream bug: chwd matches no profile on a VirtualBox/VMware
+# guest, so virt-machine driver installs become silent no-ops. This PKGBUILD
+# patches profiles.toml in prepare() and fails the build loudly if the strings
+# we look for aren't present (i.e. upstream refactored and our patch is stale).
+# Drop the patch + this comment once upstream merges a fix.
+#
+# Kiro fix #2 (nvidia-open → DKMS): [nvidia-open-dkms] (and its .prime child) ship a
+# conditional_packages snippet that prefers per-kernel PREBUILT modules (e.g.
+# linux-cachyos-nvidia-open) and only falls back to nvidia-open-dkms when no matching
+# kernel is found. Those prebuilt modules live in the cachyos repo (which Kiro ships
+# disabled by default after install) and pin to an exact kernel build, so they break
+# on kernel updates and on non-cachyos kernels. prepare() rewrites that snippet to
+# always use the nvidia-open-dkms DKMS package + per-kernel -headers — kernel- and
+# repo-agnostic. (linux-cachyos-nvidia-open has been removed from nemesis_repo.)
+# ──────────────────────────────────────────────────────────────────────────────
+
+pkgname=chwd
+pkgver=1.21.0
+# pkgrel: bump on every downstream rebuild, even when pkgver matches upstream.
+# Reason: same pkgver+pkgrel with different binary content causes pacman cache
+# corruption errors ("invalid or corrupted package (checksum)") because clients
+# (and chroot caches) reuse the stale .pkg.tar.zst by filename. Bump so the
+# filename changes too.
+pkgrel=4
+pkgdesc="CachyOS Hardware Detection Tool (Kiro patched build — virtualbox/vmware vendor_id fix; nvidia-open uses DKMS, not prebuilt modules)"
+arch=(x86_64)
+url="https://github.com/cachyos/chwd"
+license=(GPL-3.0-or-later)
+depends=('gcc-libs' 'pciutils' 'lua' 'pacman' 'libusb' 'libusb-1.0.so')
+makedepends=('git' 'cargo' 'lld' 'clang' 'llvm')
+provides=('chwd' 'chwd-db')
+replaces=('chwd-db')
+conflicts=('chwd-db')
+# NOTE: upstream PKGBUILD verifies the tag's GPG signature with
+# validpgpkeys=('B1B70BB1CD56047DEF31DE2EB62C3D10C54D5DA9'). We drop the
+# `?signed` source qualifier so clean-chroot builds don't require importing
+# Vladislav Nepogodin's key first. Audit upstream tags out-of-band when
+# bumping pkgver.
+source=("chwd::git+$url.git#tag=${pkgver}")
+sha256sums=('SKIP')
+
+prepare() {
+  cd "$srcdir/$pkgname"
+
+  # ── Kiro fix: swap [virtualbox]/[vmware] vendor_ids ─────────────────────────
+  local profiles="profiles/pci/graphic_drivers/profiles.toml"
+
+  # Sanity-check upstream's broken state. If these strings are missing,
+  # upstream has changed the file and our patch needs review.
+  grep -q '^\[virtualbox\]' "$profiles" \
+    || { echo "ERROR: [virtualbox] section not found in $profiles"; exit 1; }
+  grep -q '^\[vmware\]' "$profiles" \
+    || { echo "ERROR: [vmware] section not found in $profiles"; exit 1; }
+  grep -A 3 '^\[virtualbox\]' "$profiles" | grep -q 'vendor_ids = "15AD"' \
+    || { echo "ERROR: upstream [virtualbox] vendor_ids no longer '15AD' — patch is stale, review"; exit 1; }
+  grep -A 3 '^\[vmware\]' "$profiles" | grep -q 'vendor_ids = "80ee"' \
+    || { echo "ERROR: upstream [vmware] vendor_ids no longer '80ee' — patch is stale, review"; exit 1; }
+
+  # Address-range sed: scope each substitution to its TOML section so we
+  # don't accidentally rewrite other occurrences of the vendor strings.
+  sed -i '/^\[virtualbox\]/,/^\[/ s/^vendor_ids = "15AD"$/vendor_ids = "80EE"/' "$profiles"
+  sed -i '/^\[vmware\]/,/^\[/     s/^vendor_ids = "80ee"$/vendor_ids = "15AD"/' "$profiles"
+
+  # Verify the swap landed.
+  grep -A 3 '^\[virtualbox\]' "$profiles" | grep -q 'vendor_ids = "80EE"' \
+    || { echo "ERROR: [virtualbox] vendor_ids swap did not apply"; exit 1; }
+  grep -A 3 '^\[vmware\]' "$profiles" | grep -q 'vendor_ids = "15AD"' \
+    || { echo "ERROR: [vmware] vendor_ids swap did not apply"; exit 1; }
+  # ────────────────────────────────────────────────────────────────────────────
+
+  # ── Kiro fix #2: nvidia-open uses DKMS, not per-kernel prebuilt modules ──────
+  # Replace [nvidia-open-dkms]'s conditional_packages (prefers ${kernel}-nvidia-open
+  # prebuilt modules, dkms only as fallback) with: always nvidia-open-dkms + the
+  # -headers of every installed kernel, so DKMS builds against any kernel without
+  # the cachyos repo. The .prime child profile inherits this conditional_packages.
+  grep -qF -- '${kernel}-nvidia-open' "$profiles" \
+    || { echo "ERROR: nvidia-open prebuilt-module logic not found in $profiles — patch is stale, review"; exit 1; }
+  grep -qF -- 'echo "$modules"' "$profiles" \
+    || { echo "ERROR: nvidia-open conditional_packages end-anchor not found — patch is stale, review"; exit 1; }
+
+  # Range 'change' (c\) replaces the whole snippet (modules="" … echo "$modules")
+  # with the DKMS form. Both anchors are unique to this profile in the file.
+  sed -i '/^    modules=""$/,/^    echo "\$modules"$/c\
+    echo "nvidia-open-dkms"\
+    for pkgbase in /usr/lib/modules/*/pkgbase; do\
+        kernel="$(cat "$pkgbase")"\
+        echo "${kernel}-headers"\
+    done' "$profiles"
+
+  grep -qF -- '${kernel}-nvidia-open' "$profiles" \
+    && { echo "ERROR: nvidia-open prebuilt-module line still present after patch"; exit 1; }
+  grep -qF -- 'echo "nvidia-open-dkms"' "$profiles" \
+    || { echo "ERROR: nvidia-open-dkms DKMS replacement did not apply"; exit 1; }
+  # ────────────────────────────────────────────────────────────────────────────
+
+  cargo fetch --locked --target "$CARCH-unknown-linux-gnu"
+
+  cd scripts/chwd-kernel
+  cargo fetch --locked --target "$CARCH-unknown-linux-gnu"
+}
+
+build() {
+  cd "$srcdir/$pkgname"
+
+  # Compile with clang (matches upstream toolchain choice).
+  export AR=llvm-ar
+  export CC=clang
+  export CXX=clang++
+  export NM=llvm-nm
+  export RANLIB=llvm-ranlib
+
+  export RUSTFLAGS="-Cembed-bitcode -C opt-level=3 -Ccodegen-units=1 -Clinker=clang -C link-arg=-flto -Clink-arg=-fuse-ld=/usr/bin/ld.lld"
+
+  cd scripts/chwd-kernel
+  cargo build --release --frozen
+
+  cd ../../
+
+  cargo build --release --frozen
+}
+
+package() {
+  cd "$srcdir/$pkgname"
+
+  install -Dm755 "target/release/chwd" "$pkgdir/usr/bin/chwd"
+  install -Dm755 scripts/chwd "$pkgdir"/var/lib/chwd/scripts/chwd
+
+  install -Dm644 target/release/build/chwd-*/out/chwd.bash "$pkgdir/usr/share/bash-completion/completions/chwd"
+  install -Dm644 target/release/build/chwd-*/out/chwd.fish "$pkgdir/usr/share/fish/vendor_completions.d/chwd.fish"
+  install -Dm644 target/release/build/chwd-*/out/_chwd "$pkgdir/usr/share/zsh/site-functions/_chwd"
+
+  install -d -m755 "$pkgdir"/var/lib/chwd/{db,local}/pci
+
+  # install ids
+  install -d -m755 "$pkgdir"/var/lib/chwd/ids
+  cp -r ids/* "$pkgdir"/var/lib/chwd/ids
+
+  cp -r profiles/pci "$pkgdir"/var/lib/chwd/db/
+  cp -r profiles/usb "$pkgdir"/var/lib/chwd/db/
+
+  cd scripts/chwd-kernel
+  install -Dm755 "target/release/chwd-kernel" "$pkgdir/usr/bin/chwd-kernel"
+}
+
+# vim:set sw=2 sts=2 et:
