@@ -1,5 +1,39 @@
 # Changelog
 
+## 2026.06.19
+
+### What Changed
+- Bumped `chwd` to upstream `1.21.1` (`pkgver=1.21.1`, `pkgrel` reset to `1`).
+- Dropped the Kiro `[virtualbox]`/`[vmware]` vendor_id swap patch: upstream merged
+  the fix in `1.21.1` (`profiles.toml` now ships `[virtualbox] = 80EE`,
+  `[vmware] = 15AD` correctly), so the downstream sed + grep guards were not only
+  redundant but would have failed the build (the guards grep for the old broken
+  `15AD`/`80ee` state, which no longer exists).
+- Kept the nvidia-open → DKMS patch: that `conditional_packages` block is byte-identical
+  in `1.21.1`, still prefers per-kernel prebuilt `${kernel}-nvidia-open` modules from the
+  cachyos repo, and still needs rewriting to a kernel-/repo-agnostic DKMS form.
+- Added then removed `chwd/.nvchecker.toml`: settled on tracking upstream by **commit hash**
+  (catches `profiles.toml` edits that land without a version/tag bump) rather than version,
+  so the check became a `git ls-remote` comparison of our pinned tag's commit vs upstream
+  `master` HEAD — which needs no nvchecker config. The drift check now lives as a read-only
+  heartbeat in the `/kiro-start-session` and `/kiro-ready` skills (kept deliberately out of
+  `1-build-all-packages.sh` and the ISO build / KIB). Hard patch breakage stays covered by
+  the `prepare()` grep guards.
+
+### Technical Details
+- Verified by cloning both `1.21.0` and `1.21.1` tags and diffing
+  `profiles/pci/graphic_drivers/profiles.toml`: the vendor_ids are fixed upstream; the
+  nvidia-open `conditional_packages` snippet is unchanged, so the Fix #2 sed anchors
+  (`^    modules=""$` … `^    echo "$modules"$`) still match.
+- Trimmed `pkgdesc` to drop the virtualbox/vmware clause; rewrote the PKGBUILD header
+  rationale to a one-line historical note and removed the entire Fix #1 block from
+  `prepare()` while keeping the shared `local profiles=` line for Fix #2.
+
+### Files Modified
+- `chwd/PKGBUILD`
+- `~/.claude/commands/kiro-start-session.md` (new step 11 — chwd upstream-drift heartbeat)
+- `~/.claude/commands/kiro-ready.md` (new step 6b — chwd upstream drift, advisory)
+
 ## 2026.06.02
 
 ### What Changed

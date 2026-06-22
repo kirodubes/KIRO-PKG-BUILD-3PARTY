@@ -3,20 +3,10 @@
 # Upstream: https://github.com/CachyOS/chwd
 #
 # ─── Kiro downstream rationale ────────────────────────────────────────────────
-# CachyOS upstream chwd 1.21.0 ships profiles/pci/graphic_drivers/profiles.toml
-# with the PCI vendor_ids of the [virtualbox] and [vmware] profiles SWAPPED:
-#   [virtualbox]  vendor_ids = "15AD"   (← 15AD is VMware's vendor ID)
-#   [vmware]      vendor_ids = "80ee"   (← 80EE is InnoTek/VirtualBox)
-# Correct mapping per /usr/share/hwdata/pci.ids:
-#   80EE = InnoTek Systemberatung GmbH (VirtualBox)
-#   15AD = VMware, Inc.
-# Effect of the upstream bug: chwd matches no profile on a VirtualBox/VMware
-# guest, so virt-machine driver installs become silent no-ops. This PKGBUILD
-# patches profiles.toml in prepare() and fails the build loudly if the strings
-# we look for aren't present (i.e. upstream refactored and our patch is stale).
-# Drop the patch + this comment once upstream merges a fix.
+# (Historical note: chwd ≤1.21.0 shipped the [virtualbox]/[vmware] PCI vendor_ids
+# swapped. Upstream fixed this in 1.21.1, so the Kiro patch for it has been dropped.)
 #
-# Kiro fix #2 (nvidia-open → DKMS): [nvidia-open-dkms] (and its .prime child) ship a
+# Kiro fix (nvidia-open → DKMS): [nvidia-open-dkms] (and its .prime child) ship a
 # conditional_packages snippet that prefers per-kernel PREBUILT modules (e.g.
 # linux-cachyos-nvidia-open) and only falls back to nvidia-open-dkms when no matching
 # kernel is found. Those prebuilt modules live in the cachyos repo (which Kiro ships
@@ -27,14 +17,14 @@
 # ──────────────────────────────────────────────────────────────────────────────
 
 pkgname=chwd
-pkgver=1.21.0
+pkgver=1.21.1
 # pkgrel: bump on every downstream rebuild, even when pkgver matches upstream.
 # Reason: same pkgver+pkgrel with different binary content causes pacman cache
 # corruption errors ("invalid or corrupted package (checksum)") because clients
 # (and chroot caches) reuse the stale .pkg.tar.zst by filename. Bump so the
 # filename changes too.
-pkgrel=4
-pkgdesc="CachyOS Hardware Detection Tool (Kiro patched build — virtualbox/vmware vendor_id fix; nvidia-open uses DKMS, not prebuilt modules)"
+pkgrel=1
+pkgdesc="CachyOS Hardware Detection Tool (Kiro patched build — nvidia-open uses DKMS, not prebuilt modules)"
 arch=(x86_64)
 url="https://github.com/cachyos/chwd"
 license=(GPL-3.0-or-later)
@@ -54,33 +44,9 @@ sha256sums=('SKIP')
 prepare() {
   cd "$srcdir/$pkgname"
 
-  # ── Kiro fix: swap [virtualbox]/[vmware] vendor_ids ─────────────────────────
   local profiles="profiles/pci/graphic_drivers/profiles.toml"
 
-  # Sanity-check upstream's broken state. If these strings are missing,
-  # upstream has changed the file and our patch needs review.
-  grep -q '^\[virtualbox\]' "$profiles" \
-    || { echo "ERROR: [virtualbox] section not found in $profiles"; exit 1; }
-  grep -q '^\[vmware\]' "$profiles" \
-    || { echo "ERROR: [vmware] section not found in $profiles"; exit 1; }
-  grep -A 3 '^\[virtualbox\]' "$profiles" | grep -q 'vendor_ids = "15AD"' \
-    || { echo "ERROR: upstream [virtualbox] vendor_ids no longer '15AD' — patch is stale, review"; exit 1; }
-  grep -A 3 '^\[vmware\]' "$profiles" | grep -q 'vendor_ids = "80ee"' \
-    || { echo "ERROR: upstream [vmware] vendor_ids no longer '80ee' — patch is stale, review"; exit 1; }
-
-  # Address-range sed: scope each substitution to its TOML section so we
-  # don't accidentally rewrite other occurrences of the vendor strings.
-  sed -i '/^\[virtualbox\]/,/^\[/ s/^vendor_ids = "15AD"$/vendor_ids = "80EE"/' "$profiles"
-  sed -i '/^\[vmware\]/,/^\[/     s/^vendor_ids = "80ee"$/vendor_ids = "15AD"/' "$profiles"
-
-  # Verify the swap landed.
-  grep -A 3 '^\[virtualbox\]' "$profiles" | grep -q 'vendor_ids = "80EE"' \
-    || { echo "ERROR: [virtualbox] vendor_ids swap did not apply"; exit 1; }
-  grep -A 3 '^\[vmware\]' "$profiles" | grep -q 'vendor_ids = "15AD"' \
-    || { echo "ERROR: [vmware] vendor_ids swap did not apply"; exit 1; }
-  # ────────────────────────────────────────────────────────────────────────────
-
-  # ── Kiro fix #2: nvidia-open uses DKMS, not per-kernel prebuilt modules ──────
+  # ── Kiro fix: nvidia-open uses DKMS, not per-kernel prebuilt modules ─────────
   # Replace [nvidia-open-dkms]'s conditional_packages (prefers ${kernel}-nvidia-open
   # prebuilt modules, dkms only as fallback) with: always nvidia-open-dkms + the
   # -headers of every installed kernel, so DKMS builds against any kernel without
