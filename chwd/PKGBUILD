@@ -17,7 +17,7 @@
 # ──────────────────────────────────────────────────────────────────────────────
 
 pkgname=chwd
-pkgver=1.21.1
+pkgver=1.22.0
 # pkgrel: bump on every downstream rebuild, even when pkgver matches upstream.
 # Reason: same pkgver+pkgrel with different binary content causes pacman cache
 # corruption errors ("invalid or corrupted package (checksum)") because clients
@@ -33,6 +33,9 @@ makedepends=('git' 'cargo' 'lld' 'clang' 'llvm')
 provides=('chwd' 'chwd-db')
 replaces=('chwd-db')
 conflicts=('chwd-db')
+# Disable the split -debug package (makepkg's global `debug` option is on by
+# default in makepkg.conf); we don't ship debug symbols for this build.
+options=('!debug')
 # NOTE: upstream PKGBUILD verifies the tag's GPG signature with
 # validpgpkeys=('B1B70BB1CD56047DEF31DE2EB62C3D10C54D5DA9'). We drop the
 # `?signed` source qualifier so clean-chroot builds don't require importing
