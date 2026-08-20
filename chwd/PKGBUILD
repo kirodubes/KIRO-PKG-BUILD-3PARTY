@@ -6,6 +6,11 @@
 # (Historical note: chwd ≤1.21.0 shipped the [virtualbox]/[vmware] PCI vendor_ids
 # swapped. Upstream fixed this in 1.21.1, so the Kiro patch for it has been dropped.)
 #
+# Pinned to 1.23.0, NOT the newest tag: upstream 1.24.0 ported scripts/chwd-kernel to a
+# hand-declared FFI on alpm_pkg_get_installed_db(), which does not exist in Arch's
+# libalpm.so.16 — chwd-kernel fails to link in a stock Arch chroot. 1.24.x is knowingly
+# skipped, so the upstream-drift heartbeat firing on it is expected, not a to-do.
+#
 # Kiro fix (nvidia-open → DKMS): [nvidia-open-dkms] (and its .prime child) ship a
 # conditional_packages snippet that prefers per-kernel PREBUILT modules (e.g.
 # linux-cachyos-nvidia-open) and only falls back to nvidia-open-dkms when no matching
@@ -17,7 +22,7 @@
 # ──────────────────────────────────────────────────────────────────────────────
 
 pkgname=chwd
-pkgver=1.22.0
+pkgver=1.23.0
 # pkgrel: bump on every downstream rebuild, even when pkgver matches upstream.
 # Reason: same pkgver+pkgrel with different binary content causes pacman cache
 # corruption errors ("invalid or corrupted package (checksum)") because clients

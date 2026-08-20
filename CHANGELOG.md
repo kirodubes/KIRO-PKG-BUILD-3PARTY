@@ -1,5 +1,46 @@
 # Changelog
 
+## 2026.07.23
+
+### What Changed
+- Bumped `chwd` from the pinned `1.22.1` to upstream `1.23.0` (`pkgrel` stays `1`).
+  Triggered by the `/kiro-start-session` upstream-drift heartbeat, which reported
+  "UPSTREAM MOVED". The report was misleading: master HEAD (`e99ec339`) *is* tag
+  `1.24.1`, so there was no unreleased drift — the pin was simply three tags behind.
+- **1.24.x is knowingly skipped, not pending.** Upstream `1.24.0` ported
+  `scripts/chwd-kernel` to a hand-declared FFI on `alpm_pkg_get_installed_db()`, a libalpm
+  symbol that does not exist in Arch's `libalpm.so.16` (checked on this box and in
+  `~/Documents/chroot-archlinux`, both `pacman 7.1.0.r9`). A `1.24.1` build fails at link
+  time with `ld.lld: error: undefined symbol: alpm_pkg_get_installed_db`. Upstream evidently
+  builds against a patched pacman. Recorded as a comment in the PKGBUILD header so the next
+  drift alert on 1.24.x reads as expected, not as a to-do.
+- Catch-up note: the previous pin `1.22.1` was never built or published. The repo and
+  this box both still carry `chwd-1.22.0-1`, and no CHANGELOG entry exists for 1.22.0
+  or 1.22.1 (last chwd entry was 1.21.1). The `1.23.0` build supersedes both.
+- Kept the nvidia-open → DKMS patch unchanged: `profiles/pci/graphic_drivers/profiles.toml`
+  is byte-identical across `1.22.0..1.24.1`, so all three `prepare()` grep guards still match.
+
+### Technical Details
+- Real gain in this bump is upstream #260: `scripts/chwd`'s `pacman_handle` now shell-quotes
+  every argument (`pacman` became a table instead of a concatenated string). Our injected
+  `conditional_packages` snippet emits bare package names one per line, so it still passes
+  cleanly through the new `split` + `shell_quote` path. Rest is clippy/rustfmt passes,
+  Bulgarian i18n, and dependency churn. No new system dependencies — the `depends` array
+  (pciutils, libusb, lua, pacman) is unchanged.
+- The 1.24.1 `board_name` panic fix (#264) is **not** a reason to chase 1.24.x. The
+  `.expect()` on `/sys/devices/virtual/dmi/id/board_name` only executes for profiles that
+  carry a `board_name_pattern` key — and that key was *introduced* in 1.24.0, where
+  `[handheld.rog-ally]` and `[handheld.msi-claw]` set `hwd_product_name_pattern = '.*'` and
+  filter on board_name instead. So 1.24.0 is what would expose every machine (VMs included,
+  where the DMI file is absent) to the panic; 1.24.1 only repairs its own regression.
+  At 1.22.x/1.23.0 no profile has the key, the read never runs, and we are not exposed.
+- Out-of-band tag audit (required because our PKGBUILD drops the `?signed` source qualifier):
+  the `1.23.0` tag is GPG-signed by issuer fingerprint
+  `B1B70BB1CD56047DEF31DE2EB62C3D10C54D5DA9` — the same key upstream pins in `validpgpkeys`.
+
+### Files Modified
+- `chwd/PKGBUILD`
+
 ## 2026.06.19
 
 ### What Changed
