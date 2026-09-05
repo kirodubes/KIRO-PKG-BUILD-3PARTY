@@ -36,8 +36,22 @@
   `depends` and `makedepends`. Only its FIRST-BUILD ALIGNMENT GATE comment was corrected, which
   still claimed the wlroots comes from `[extra]`.
 
+- **Second build failure: `-Werror` vs a newer libinput.** `LIBINPUT_SWITCH_KEYPAD_SLIDE` has been
+  added to libinput since wlroots 0.18, and 0.18's `backend/libinput/switch.c` does not handle it;
+  the project sets `werror=true` in its `default_options`, so `-Werror=switch` aborted the build at
+  file 228 of 368. Fixed with a local delta: `arch-meson … -D werror=false`.
+  Chosen over patching the single case because ~140 files were still unbuilt and any of them could
+  trip the same class of new-header warning; one option covers them all. 0.18 is EOL (Arch dropped
+  it, 0.18.3-1 is final) so upstream will never fix this.
+  Runtime impact is nil: `wlr_event` is a designated initialiser, so an unmatched switch type reads
+  as zero (LID) rather than uninitialised, and keypad-slide hardware does not exist on a Kiro desktop.
+- The delta is **committed inside the AUR checkout** (and the parent gitlink bumped), not left as an
+  uncommitted edit — `build.sh` runs `git pull` in the package dir before building, and a dirty
+  tracked file would be at the mercy of any upstream change. Expect it to show as a local commit
+  ahead of the AUR remote.
+
 ### Files Modified
-- `wlroots0.18/` (new — AUR checkout + shared `build.sh`)
+- `wlroots0.18/` (new — AUR checkout + shared `build.sh`, plus the local werror delta)
 - `../KIROTUX/KIROTUX-PKG-BUILD/kiro-dwl/PKGBUILD` (comment only; that tree is not a git repo)
 
 ## 2026.07.23
