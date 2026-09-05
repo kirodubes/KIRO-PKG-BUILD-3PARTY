@@ -19,10 +19,17 @@
 - `wlroots0.18/` — straight AUR checkout (`https://aur.archlinux.org/wlroots0.18.git`), tracked as
   a gitlink like `sway-scroll` and `tinty-git`, plus a copy of the shared `build.sh`. Same pattern
   already used for `scenefx0.5`, another versioned wlroots-ecosystem library Arch does not ship.
-- Its `source=` is a **signed git tag** (`#tag=${pkgver}?signed`). The three `validpgpkeys` (Simon
-  Ser, Drew DeVault, the Sway signing key) are none of them in the local keyring, but the checkout
-  ships them under `keys/pgp/`, which makepkg imports automatically — so the chroot build verifies
-  the tag without any manual `gpg --recv-keys`.
+- Its `source=` is a **signed git tag** (`#tag=${pkgver}?signed`), and the first build failed with
+  `unknown public key 0FDE7BE0E88F5E48`. The checkout ships the three `validpgpkeys` (Simon Ser,
+  Drew DeVault, the Sway signing key) under `keys/pgp/`, but **makepkg does not import them** —
+  its only `keys/pgp/` handling (makepkg line ~836) copies keys *into a source package* when
+  building one, never into a keyring for verification. And `makechrootpkg` verifies sources on the
+  **host as the calling user** (`sudo -u "$makepkg_user" --preserve-env=GNUPGHOME`), not inside the
+  chroot, so the chroot's keyring is irrelevant. Fix: `gpg --import keys/pgp/*.asc` once, into
+  Erik's own keyring. Verified by re-running the exact step that failed —
+  `makepkg --verifysource` now reports `wlroots0.18 git repo ... Passed`.
+- That Passed line carries `WARNING: the key has expired`. Expired is a *warning* in makepkg, not
+  an error, so the build proceeds — do not chase it.
 - First build is not skipped: the shared `build.sh` compares against `.previous-version`, which
   does not exist yet, so `BUILD_NEEDED` becomes true.
 - `kiro-dwl`'s PKGBUILD needs no dependency change — it already pins `wlroots0.18` in both
