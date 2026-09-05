@@ -1,5 +1,38 @@
 # Changelog
 
+## 2026.09.05
+
+### What Changed
+- **Added `wlroots0.18` (0.18.3-1), packaged from the AUR.** `kiro-dwl` stopped building:
+  Arch dropped **both** `wlroots0.18` and `wlroots0.19` from `[extra]`, which now ships only
+  `wlroots0.20`. dwl's `config.mk` resolves wlroots through pkg-config with the version in the
+  *module name* (`wlroots-0.18.pc`), so a newer wlroots can never satisfy it — and upstream dwl,
+  including the `main` branch, still pins `wlroots-0.19`. There is therefore no dwl release that
+  builds against anything Arch currently ships.
+- Chose to keep `kiro-dwl` on dwl 0.7 + `wlroots0.18` rather than follow the AUR `dwl` package to
+  0.8 + `wlroots0.19`: 0.8 would need `wlroots0.19` packaged here anyway *and* both vendored
+  patches rebased (dry-run against a clean 0.8 tarball: `ipc` fails 1/12 hunks, `vanitygaps` fails
+  1/13 plus all of `config.def.h`; even the official `vanitygaps-0.8.patch` failed a hunk). Keeping
+  0.7 needs no patch work and restores a known-good combination.
+
+### Technical Details
+- `wlroots0.18/` — straight AUR checkout (`https://aur.archlinux.org/wlroots0.18.git`), tracked as
+  a gitlink like `sway-scroll` and `tinty-git`, plus a copy of the shared `build.sh`. Same pattern
+  already used for `scenefx0.5`, another versioned wlroots-ecosystem library Arch does not ship.
+- Its `source=` is a **signed git tag** (`#tag=${pkgver}?signed`). The three `validpgpkeys` (Simon
+  Ser, Drew DeVault, the Sway signing key) are none of them in the local keyring, but the checkout
+  ships them under `keys/pgp/`, which makepkg imports automatically — so the chroot build verifies
+  the tag without any manual `gpg --recv-keys`.
+- First build is not skipped: the shared `build.sh` compares against `.previous-version`, which
+  does not exist yet, so `BUILD_NEEDED` becomes true.
+- `kiro-dwl`'s PKGBUILD needs no dependency change — it already pins `wlroots0.18` in both
+  `depends` and `makedepends`. Only its FIRST-BUILD ALIGNMENT GATE comment was corrected, which
+  still claimed the wlroots comes from `[extra]`.
+
+### Files Modified
+- `wlroots0.18/` (new — AUR checkout + shared `build.sh`)
+- `../KIROTUX/KIROTUX-PKG-BUILD/kiro-dwl/PKGBUILD` (comment only; that tree is not a git repo)
+
 ## 2026.07.23
 
 ### What Changed
