@@ -19,6 +19,12 @@
 # on kernel updates and on non-cachyos kernels. prepare() rewrites that snippet to
 # always use the nvidia-open-dkms DKMS package + per-kernel -headers — kernel- and
 # repo-agnostic. (linux-cachyos-nvidia-open has been removed from nemesis_repo.)
+#
+# Kiro back-port (upstream 86a0dbd, 2026-09-01): "profiles: match NVIDIA PRIME
+# profiles on convertibles" adds chassis type 31 to the laptop allowlist of the
+# three NVIDIA PRIME profiles. Without it hybrid 2-in-1s match the desktop profile
+# and boot to a blank Plymouth/LUKS screen — which Kiro ships both of. Applied as a
+# patch rather than a pin bump because 86a0dbd sits past the skipped 1.24.0.
 # ──────────────────────────────────────────────────────────────────────────────
 
 pkgname=chwd
@@ -28,7 +34,7 @@ pkgver=1.23.0
 # corruption errors ("invalid or corrupted package (checksum)") because clients
 # (and chroot caches) reuse the stale .pkg.tar.zst by filename. Bump so the
 # filename changes too.
-pkgrel=1
+pkgrel=2
 pkgdesc="CachyOS Hardware Detection Tool (Kiro patched build — nvidia-open uses DKMS, not prebuilt modules)"
 arch=(x86_64)
 url="https://github.com/cachyos/chwd"
@@ -77,6 +83,18 @@ prepare() {
     && { echo "ERROR: nvidia-open prebuilt-module line still present after patch"; exit 1; }
   grep -qF -- 'echo "nvidia-open-dkms"' "$profiles" \
     || { echo "ERROR: nvidia-open-dkms DKMS replacement did not apply"; exit 1; }
+  # ────────────────────────────────────────────────────────────────────────────
+
+  # ── Kiro back-port: upstream 86a0dbd — 2-in-1 convertibles (chassis type 31) ──
+  # Upstream added 31 to the laptop allowlist of the three NVIDIA PRIME profiles
+  # (open, 580xx, 470xx); without it hybrid convertibles match the desktop profile
+  # and boot to a blank Plymouth/LUKS screen. Kept byte-identical to upstream so
+  # the divergence stays trivial to re-check on the next pin bump.
+  grep -qF 'chassis_types = "8 9 10 11"' "$profiles" \
+    || { echo "ERROR: chassis_types allowlist not found in $profiles — back-port is stale, review"; exit 1; }
+  sed -i 's/^chassis_types = "8 9 10 11"$/chassis_types = "8 9 10 11 31"/' "$profiles"
+  [ "$(grep -c 'chassis_types = "8 9 10 11 31"' "$profiles")" -eq 3 ] \
+    || { echo "ERROR: chassis back-port did not apply to all three NVIDIA PRIME profiles"; exit 1; }
   # ────────────────────────────────────────────────────────────────────────────
 
   cargo fetch --locked --target "$CARCH-unknown-linux-gnu"

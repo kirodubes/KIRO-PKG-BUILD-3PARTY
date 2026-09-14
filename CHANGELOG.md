@@ -1,5 +1,42 @@
 # Changelog
 
+## 2026.09.14
+
+### What Changed
+- **Back-ported upstream chwd `86a0dbd` into the pinned 1.23.0 build** (`chwd/PKGBUILD`,
+  `pkgrel` 1 → 2). Upstream's "profiles: match NVIDIA PRIME profiles on convertibles" adds
+  chassis type **31** to the laptop allowlist of the three NVIDIA PRIME profiles (open, 580xx,
+  470xx). Without it a hybrid 2-in-1 matches the *desktop* profile and boots to a blank
+  Plymouth/LUKS screen — Kiro ships both Plymouth and LUKS, so the failure mode is ours. It is
+  latent rather than universal: Kiro only runs chwd on the `driver=nonfreechwd` boot-menu path.
+- Taken as a **patch, not a pin bump.** `86a0dbd` sits past `1.24.0`, which is knowingly skipped
+  because its `chwd-kernel` port hand-declares an FFI on `alpm_pkg_get_installed_db()` that does
+  not exist in Arch's `libalpm.so.16`. Nothing in the eleven commits between `1.23.0` and master
+  fixes that, so the pin stays.
+- **Deliberately not back-ported: `6270759`** ("gracefully handle missing board_name DMI file",
+  which prevents a fatal panic in QEMU/Proxmox VMs). The `.expect()` it repairs was introduced by
+  `197a679`, which is itself inside `1.23.0..master` — 1.23.0 predates the bug, so this is a fix
+  for a regression we do not carry.
+
+### Technical Details
+- The back-port is a third assert-sed-assert block in `prepare()`, after the existing nvidia-open
+  DKMS rewrite. It anchors on `chassis_types = "8 9 10 11"` (three occurrences at 1.23.0, lines
+  61/133/179) and asserts exactly 3 replacements afterwards, so a stale anchor fails the build
+  rather than silently shipping an unpatched profile — same guard style as the nvidia-open patch.
+  The two patches use disjoint anchors (the nvidia one rewrites the `modules=""` … `echo
+  "$modules"` range), verified to coexist on the real 1.23.0 file.
+- Kept **byte-identical to upstream** (`31` appended, nothing else) so the divergence stays
+  trivial to re-check on the next pin bump; the resulting `chassis_types` lines diff clean against
+  `86a0dbd`.
+- `pkgrel` bump is load-bearing, not cosmetic: same `pkgver`+`pkgrel` with different binary content
+  makes pacman clients reuse the stale `.pkg.tar.zst` by filename and report
+  "invalid or corrupted package (checksum)".
+- Verify after building by **extraction, not version**:
+  `bsdtar -xOf chwd-1.23.0-2-x86_64.pkg.tar.zst profiles/pci/graphic_drivers/profiles.toml | grep -c 'chassis_types = "8 9 10 11 31"'` must return `3`.
+
+### Files Modified
+- `chwd/PKGBUILD`
+
 ## 2026.09.05
 
 ### What Changed
