@@ -103,7 +103,8 @@ copy_script() {
     while IFS= read -r -d '' dir; do
         cp -v "${source}" "${dir}/${filename}"
         count=$(( count + 1 ))
-    done < <(find "${SCRIPT_DIR}" -mindepth 1 -maxdepth 1 -type d -not -name '.*' -print0 | sort -z)
+    done < <(find "${SCRIPT_DIR}" -mindepth 1 -maxdepth 1 -type d \
+        -not -name '.*' -not -name 'patches' -print0 | sort -z)
 
     total_dirs=$count
     total_copies=$(( total_copies + count ))

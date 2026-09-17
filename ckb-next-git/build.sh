@@ -2,14 +2,34 @@
 set -euo pipefail
 #####################################################################
 # Author    : Erik Dubois
-# Website   : https://www.erikdubois.be
+# Website   : https://kiroproject.be
 #####################################################################
 #
 #   DO NOT JUST RUN THIS. EXAMINE AND JUDGE. RUN AT YOUR OWN RISK.
 #
+# Purpose:
+#   Per-package build driver. Decides whether this package actually
+#   needs rebuilding, and if so builds it in the clean chroot and copies
+#   the result into ~/EDU/nemesis_repo/x86_64/.
+#
+#   The rebuild decision depends on the package class in packages.conf:
+#
+#     aur-fixed  pkgver/pkgrel/epoch changed since the last good build
+#     aur-vcs    upstream git HEAD moved since the last good build,
+#                read live with git ls-remote
+#     local      pkgver/pkgrel changed locally (in-house packages)
+#
+# Why:
+#   The previous version compared the PKGBUILD against .previous-version,
+#   which only ever detects edits YOU made. VCS packages therefore never
+#   rebuilt: makepkg's pkgver() rewrites the version in the /tmp build
+#   copy, never in the source dir, so the literal it compared was frozen
+#   forever. For a -git package it is the upstream push that decides, and
+#   the AUR's own pkgver is meaningless because it is frozen too.
 #####################################################################
 
 SCRIPT_DIR="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)"
+REPO_DIR="$(dirname "${SCRIPT_DIR}")"
 
 #####################################################################
 # Colors
@@ -83,170 +103,220 @@ on_error() {
 trap 'on_error "$LINENO" "$BASH_COMMAND"' ERR
 
 #####################################################################
+# Configuration
+#####################################################################
+PKGNAME="$(basename "${SCRIPT_DIR}")"
+STATE_FILE="${SCRIPT_DIR}/.build-state"
+CHROOT="${HOME}/Documents/chroot-archlinux"
+DESTINY="${HOME}/EDU/nemesis_repo/x86_64/"
+UPDATE_CHROOT="true"
+CHECK_ONLY="false"
+BUILD_NEEDED="false"
+BUILD_REASON=""
+NEW_UPSTREAM_COMMIT=""
+
+if [[ -f "${REPO_DIR}/packages.conf" ]]; then
+    # shellcheck source=packages.conf
+    source "${REPO_DIR}/packages.conf"
+else
+    declare -A PKG_CLASS=() PKG_UPSTREAM=() PKG_UPSTREAM_REF=()
+fi
+
+PKG_TYPE="${PKG_CLASS[${PKGNAME}]:-local}"
+
+#####################################################################
 # Functions
 #####################################################################
-git_pull_if_repo() {
-    if [[ -d "${SCRIPT_DIR}/.git" ]]; then
-        log_section "Updating with git pull"
-        git -C "${SCRIPT_DIR}" pull
-    fi
+parse_args() {
+    while [[ $# -gt 0 ]]; do
+        case "$1" in
+            --no-chroot-update) UPDATE_CHROOT="false" ;;
+            --check)            CHECK_ONLY="true" ;;
+            *) log_error "Unknown option: $1"; exit 1 ;;
+        esac
+        shift
+    done
 }
 
-bump_version() {
-    local pkgbuild="${SCRIPT_DIR}/PKGBUILD"
-    [[ ! -f "${pkgbuild}" ]] && { log_error "No PKGBUILD found in ${SCRIPT_DIR}"; exit 1; }
+read_state() {
+    local key="$1"
+    [[ -f "${STATE_FILE}" ]] || return 0
+    grep -m1 "^${key}=" "${STATE_FILE}" 2>/dev/null | cut -d= -f2- || true
+}
 
-    local pkgname old_pkgver old_pkgrel new_pkgver new_pkgrel
-    pkgname=$(grep -E '^pkgname=' "${pkgbuild}" | cut -d= -f2)
-    old_pkgver=$(grep -E '^pkgver=' "${pkgbuild}" | cut -d= -f2)
-    old_pkgrel=$(grep -E '^pkgrel=' "${pkgbuild}" | cut -d= -f2)
+pkgbuild_field() {
+    local key="$1"
+    grep -m1 -E "^${key}=" "${SCRIPT_DIR}/PKGBUILD" 2>/dev/null | cut -d= -f2- | tr -d "'\"" || true
+}
+
+# Only in-house date-versioned packages are auto-bumped. Anything that
+# comes from the AUR has its version owned by the AUR.
+bump_version() {
+    local old_pkgver old_pkgrel new_pkgver new_pkgrel
+
+    if [[ "${PKG_TYPE}" != "local" ]]; then
+        log_info "${PKGNAME}: version owned by the AUR (class: ${PKG_TYPE}) — no bump"
+        return 0
+    fi
+
+    old_pkgver="$(pkgbuild_field pkgver)"
+    old_pkgrel="$(pkgbuild_field pkgrel)"
 
     if [[ ! "${old_pkgver}" =~ ^[0-9]{2}\.[0-9]{2}$ ]]; then
         log_info "Upstream-versioned package (pkgver=${old_pkgver}) — skipping bump"
         return 0
     fi
 
-    local source_line
-    source_line=$(grep -E '^\s*source=' "${pkgbuild}" || true)
-    if echo "${source_line}" | grep -qE '\$\{?pkgver\}?|\$\{?pkgrel\}?'; then
-        log_warn "Source URL embeds pkgver/pkgrel — skipping auto-bump for '${pkgname}'. Set version manually when a new upstream release is published."
-        return 0
-    fi
-
-    new_pkgver=$(date +%y.%m)
-
+    new_pkgver="$(date +%y.%m)"
     if [[ "${new_pkgver}" != "${old_pkgver}" ]]; then
         new_pkgrel="01"
     else
-        new_pkgrel=$(printf '%02d' $((10#${old_pkgrel} + 1)))
+        new_pkgrel="$(printf '%02d' $((10#${old_pkgrel} + 1)))"
     fi
 
-    sed -i "s/^pkgver=.*/pkgver=${new_pkgver}/" "${pkgbuild}"
-    sed -i "s/^pkgrel=.*/pkgrel=${new_pkgrel}/" "${pkgbuild}"
+    sed -i "s/^pkgver=.*/pkgver=${new_pkgver}/" "${SCRIPT_DIR}/PKGBUILD"
+    sed -i "s/^pkgrel=.*/pkgrel=${new_pkgrel}/" "${SCRIPT_DIR}/PKGBUILD"
 
-    log_info "Updated '${pkgname}':
+    log_info "Updated '${PKGNAME}':
   pkgver: ${old_pkgver} → ${new_pkgver}
   pkgrel: ${old_pkgrel} → ${new_pkgrel}"
 }
 
-create_current_version() {
-    local pkgbuild="${SCRIPT_DIR}/PKGBUILD"
-    local pkgver pkgrel epoch
-    pkgver=$(grep -m1 "pkgver" "${pkgbuild}" | cut -d= -f2)
-    pkgrel=$(grep -m1 "pkgrel" "${pkgbuild}" | cut -d= -f2)
-    epoch=$(grep -m1 "epoch"  "${pkgbuild}" | cut -d= -f2 || true)
-    {
-        echo "pkgver=${pkgver}"
-        echo "pkgrel=${pkgrel}"
-        echo "epoch=${epoch}"
-    } > "${SCRIPT_DIR}/.current-version"
+# For a -git package the PKGBUILD version is a frozen placeholder, so the
+# only honest signal is whether upstream has pushed since the last build.
+check_vcs_upstream() {
+    local url ref old new
+
+    url="${PKG_UPSTREAM[${PKGNAME}]:-}"
+    ref="${PKG_UPSTREAM_REF[${PKGNAME}]:-HEAD}"
+
+    if [[ -z "${url}" ]]; then
+        log_error "${PKGNAME} is class aur-vcs but has no upstream URL in packages.conf"
+        exit 1
+    fi
+
+    new="$(git ls-remote "${url}" "${ref}" 2>/dev/null | awk '{print $1}' | head -1)"
+    if [[ -z "${new}" ]]; then
+        log_error "${PKGNAME}: cannot reach upstream ${url} (ref ${ref})"
+        exit 1
+    fi
+
+    old="$(read_state upstream_commit)"
+    NEW_UPSTREAM_COMMIT="${new}"
+
+    log_info "$(printf 'Package:  %s (aur-vcs)\nUpstream: %s\nPrevious: %s\nCurrent:  %s' \
+        "${PKGNAME}" "${url}" "${old:-<none>}" "${new}")"
+
+    if [[ "${new}" != "${old}" ]]; then
+        BUILD_NEEDED="true"
+        BUILD_REASON="upstream pushed ${old:0:7}..${new:0:7}"
+    fi
+}
+
+check_version_fields() {
+    local pkgver pkgrel epoch oldver oldrel oldepoch
+
+    pkgver="$(pkgbuild_field pkgver)"
+    pkgrel="$(pkgbuild_field pkgrel)"
+    epoch="$(pkgbuild_field epoch)"
+
+    oldver="$(read_state pkgver)"
+    oldrel="$(read_state pkgrel)"
+    oldepoch="$(read_state epoch)"
+
+    log_info "$(printf 'Package:  %s (%s)\nPrevious: pkgver=%s pkgrel=%s epoch=%s\nCurrent:  pkgver=%s pkgrel=%s epoch=%s' \
+        "${PKGNAME}" "${PKG_TYPE}" \
+        "${oldver:-<none>}" "${oldrel:-<none>}" "${oldepoch:-}" \
+        "${pkgver}" "${pkgrel}" "${epoch}")"
+
+    if [[ "${pkgver}" != "${oldver}" || "${pkgrel}" != "${oldrel}" || "${epoch}" != "${oldepoch}" ]]; then
+        BUILD_NEEDED="true"
+        BUILD_REASON="version ${oldver:-<none>}-${oldrel:-<none>} → ${pkgver}-${pkgrel}"
+    fi
 }
 
 check_version() {
-    local pkgbuild="${SCRIPT_DIR}/PKGBUILD"
-    local prev="${SCRIPT_DIR}/.previous-version"
-    local pkgname pkgver pkgrel epoch
-    local oldpkgver="" oldpkgrel="" oldepoch=""
-
-    pkgname=$(grep -E '^pkgname=' "${pkgbuild}" | cut -d= -f2)
-    pkgver=$(grep -m1 "pkgver" "${pkgbuild}" | cut -d= -f2)
-    pkgrel=$(grep -m1 "pkgrel" "${pkgbuild}" | cut -d= -f2)
-    epoch=$(grep -m1 "epoch"  "${pkgbuild}" | cut -d= -f2 || true)
-
-    if [[ -f "${prev}" ]]; then
-        oldpkgver=$(grep -m1 "pkgver" "${prev}" | cut -d= -f2 || true)
-        oldpkgrel=$(grep -m1 "pkgrel" "${prev}" | cut -d= -f2 || true)
-        oldepoch=$(grep -m1  "epoch"  "${prev}" | cut -d= -f2 || true)
-    fi
-
-    log_info "$(printf 'Previous: pkgver=%s pkgrel=%s epoch=%s\nNew:      pkgver=%s pkgrel=%s epoch=%s\nPackage:  %s' \
-        "${oldpkgver}" "${oldpkgrel}" "${oldepoch}" \
-        "${pkgver}"    "${pkgrel}"    "${epoch}" \
-        "${pkgname}")"
-
-    {
-        echo "pkgver=${pkgver}"
-        echo "pkgrel=${pkgrel}"
-        echo "epoch=${epoch}"
-    } > "${SCRIPT_DIR}/.current-version"
-
-    if [[ "${pkgver}" != "${oldpkgver}" || "${pkgrel}" != "${oldpkgrel}" || "${epoch}" != "${oldepoch}" ]]; then
-        BUILD_NEEDED="true"
+    if [[ "${PKG_TYPE}" == "aur-vcs" ]]; then
+        check_vcs_upstream
     else
-        BUILD_NEEDED="false"
+        check_version_fields
     fi
 }
 
+update_chroot() {
+    [[ "${UPDATE_CHROOT}" == "true" ]] || return 0
+    log_section "Updating chroot ${CHROOT}"
+    arch-nspawn "${CHROOT}/root" pacman -Syu --noconfirm
+}
+
+# State is written only after a successful build, so a failed build is
+# retried on the next run instead of being recorded as done.
+write_state() {
+    {
+        printf 'pkgver=%s\n' "$(pkgbuild_field pkgver)"
+        printf 'pkgrel=%s\n' "$(pkgbuild_field pkgrel)"
+        printf 'epoch=%s\n'  "$(pkgbuild_field epoch)"
+        [[ -n "${NEW_UPSTREAM_COMMIT}" ]] && printf 'upstream_commit=%s\n' "${NEW_UPSTREAM_COMMIT}"
+        printf 'built=%s\n' "$(date +%Y-%m-%d)"
+    } > "${STATE_FILE}"
+}
+
 build_package() {
-    local pkgbuild="${SCRIPT_DIR}/PKGBUILD"
-    local search destiny CHROOT CHOICE
-    local makepkglist=""
-
-    search="$(basename "${SCRIPT_DIR}")"
-    destiny="${HOME}/EDU/nemesis_repo/x86_64/"
-    CHROOT="${HOME}/Documents/chroot-archlinux"
-    CHOICE=1
-
-    for i in ${makepkglist}; do
-        [[ "${search}" == "${i}" ]] && CHOICE=2
-    done
+    local success="false"
 
     [[ -d /tmp/tempbuild ]] && rm -rf /tmp/tempbuild
     mkdir /tmp/tempbuild
     cp -r "${SCRIPT_DIR}/"* /tmp/tempbuild/
 
-    local success="false"
-
-    if [[ "${CHOICE}" == "1" ]]; then
-        log_section "Building ${search} in CHROOT ${CHROOT}"
-        arch-nspawn "${CHROOT}/root" pacman -Syu --noconfirm
-        if (cd /tmp/tempbuild && makechrootpkg -c -r "${CHROOT}"); then
-            success="true"
-        fi
-    else
-        log_section "Building ${search} with MAKEPKG"
-        if (cd /tmp/tempbuild && makepkg -s); then
-            success="true"
-        fi
+    log_section "Building ${PKGNAME} in CHROOT ${CHROOT}"
+    if (cd /tmp/tempbuild && makechrootpkg -c -r "${CHROOT}"); then
+        success="true"
     fi
 
-    if [[ "${success}" == "true" ]]; then
-        log_section "Copying packages to ${destiny}"
-        cp -nv /tmp/tempbuild/*"${search}"*pkg.tar.zst "${destiny}" || \
-            log_warn "${search} already exists in destination — skipping copy"
+    if [[ "${success}" != "true" ]]; then
+        log_error "Build FAILED for ${PKGNAME} — state not updated, will retry next run"
+        echo "${PKGNAME}: build failed" >> /tmp/failed
+        return 1
+    fi
 
-        local file_count
-        file_count=$(find "${destiny}" -maxdepth 1 -name "${search}*" -print | wc -l)
-        if [[ "${file_count}" -gt 2 ]]; then
-            printf "%s\n" "${search}" | tee -a /tmp/installed
-            find "${destiny}" -maxdepth 1 -name "${search}*" -exec basename {} \; | tee -a /tmp/installed
-        fi
+    log_section "Copying packages to ${DESTINY}"
+    cp -nv /tmp/tempbuild/*"${PKGNAME}"*pkg.tar.zst "${DESTINY}" || \
+        log_warn "${PKGNAME} already exists in destination — skipping copy"
+
+    local file_count
+    file_count=$(find "${DESTINY}" -maxdepth 1 -name "${PKGNAME}*" -print | wc -l)
+    if [[ "${file_count}" -gt 2 ]]; then
+        printf "%s\n" "${PKGNAME}" | tee -a /tmp/installed
+        find "${DESTINY}" -maxdepth 1 -name "${PKGNAME}*" -exec basename {} \; | tee -a /tmp/installed
     fi
 
     log_section "Cleaning up"
     find "${SCRIPT_DIR}" -maxdepth 1 \( -name "*.log" -o -name "*.deb" -o -name "*.tar.gz" \) -delete
 
-    cp "${SCRIPT_DIR}/.current-version" "${SCRIPT_DIR}/.previous-version"
-
-    log_success "Build done for ${search}"
+    write_state
+    log_success "Build done for ${PKGNAME}"
 }
 
 #####################################################################
 # Main
 #####################################################################
-BUILD_NEEDED="false"
-
 main() {
-    git_pull_if_repo
-    bump_version
-    create_current_version
+    parse_args "$@"
+    [[ "${CHECK_ONLY}" == "true" ]] || bump_version
     check_version
 
     if [[ "${BUILD_NEEDED}" == "false" ]]; then
-        log_warn "No version change detected — skipping build"
+        log_warn "${PKGNAME}: up to date — skipping build"
         exit 0
     fi
 
+    log_info "${PKGNAME}: REBUILD NEEDED (${BUILD_REASON})"
+
+    if [[ "${CHECK_ONLY}" == "true" ]]; then
+        exit 0
+    fi
+
+    update_chroot
     build_package
 
     log_success "$(basename "$0") done"

@@ -1,0 +1,41 @@
+From f848e88412b6916f72fb6e093b97bacccf28265a Mon Sep 17 00:00:00 2001
+From: Erik Dubois <erik.dubois@gmail.com>
+Date: Sat, 5 Sep 2026 11:59:45 +0200
+Subject: [PATCH] Kiro: build with -D werror=false (libinput enum vs EOL
+ wlroots 0.18)
+
+Current libinput added LIBINPUT_SWITCH_KEYPAD_SLIDE; wlroots 0.18's
+backend/libinput/switch.c does not handle it and the project sets
+werror=true, so -Werror=switch fails the build. 0.18 is EOL so upstream
+will never add the case.
+
+Local Kiro delta, not upstream AUR.
+---
+ PKGBUILD | 11 ++++++++++-
+ 1 file changed, 10 insertions(+), 1 deletion(-)
+
+diff --git a/PKGBUILD b/PKGBUILD
+index a78e146..6f81ef4 100644
+--- a/PKGBUILD
++++ b/PKGBUILD
+@@ -36,7 +36,16 @@ prepare() {
+ }
+ 
+ build() {
+-	arch-meson "${pkgname}" build
++	# KIRO LOCAL DELTA (2026-09-05) — not upstream AUR.
++	# wlroots 0.18 sets werror=true in its project() default_options, but current
++	# libinput has since added LIBINPUT_SWITCH_KEYPAD_SLIDE, which 0.18's switch in
++	# backend/libinput/switch.c does not handle -> -Werror=switch fails the build.
++	# 0.18 is EOL (Arch dropped it; 0.18.3-1 is final), so upstream will never add
++	# the case. Harmless at runtime: wlr_event is a designated initialiser, so an
++	# unmatched switch type stays zero (= LID) rather than uninitialised, and no
++	# Kiro desktop has keypad-slide hardware. Dropping werror also covers any other
++	# new-header warning in the remaining ~140 files, which patching one case would not.
++	arch-meson "${pkgname}" build -D werror=false
+ 	ninja -C build
+ }
+ 
+-- 
+2.55.0
+

@@ -1,0 +1,5 @@
+pkgver=v1.0.1.33.gab88ac6
+pkgrel=1
+epoch=
+upstream_commit=ab88ac6f8f33698f39ece2f109b1117ef39a68eb
+built=seeded-from-artifact

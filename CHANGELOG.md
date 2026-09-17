@@ -1,5 +1,69 @@
 # Changelog
 
+## 2026.09.17
+
+### What Changed
+- **Rebuild detection now reads upstream instead of the local PKGBUILD.** The old flow compared
+  the PKGBUILD literals against `.previous-version` — a local file-vs-file diff that only ever
+  detects edits made by hand. Consequences: `lastpass` sat four releases behind (4.147.2 vs
+  4.151.5), `pamac-aur` one (11.7.4-3 vs 11.7.5-1), `sway-scroll` six (1.12.15 vs 1.12.21), and
+  **no `-git` package had rebuilt on an upstream push, ever**.
+- **The `-git` packages were the real hole.** `makepkg`'s `pkgver()` rewrites the version in the
+  `/tmp/tempbuild` copy, never in the source dir, so the literal being compared is frozen
+  permanently. Evidence: `noctalia-git`'s PKGBUILD says `r1191` while the shipped artifact is
+  `r4258` — that build only happened via an accidental manual `pkgrel` bump. The AUR's own
+  `pkgver` is no help either, because it is frozen for VCS packages too; **the upstream git push
+  is the only honest signal**, read live with `git ls-remote`.
+- **New AUR sync.** `aur-sync.sh` clones each AUR repo into `~/.cache/kiro-aur/<pkg>` and rsyncs
+  the whole tree into the package dir, so companion files (`.install` scripts, pacman hooks,
+  `.json`, patches) travel with the PKGBUILD instead of drifting.
+- **Chroot updated once per run, not once per package** — was eighteen `arch-nspawn pacman -Syu`
+  calls per full run.
+- **`--check` mode** on `1-build-all-packages.sh`: sync, report what would rebuild and why, then
+  stop without building and **without calling `up.sh`**, which commits and pushes the live repo.
+
+### Technical Details
+- `packages.conf` classifies every package as `aur-fixed`, `aur-vcs` or `local`; a directory on
+  disk that is absent from it is a **hard error**, so a new folder cannot slip through unnoticed.
+  `gnome-bluetooth` is `aur-fixed` despite its `git+` source because it pins `#commit=$_commit`.
+- **Kiro deltas are declared, never inferred.** An earlier draft auto-detected the local delta by
+  diffing the package dir against the AUR tree; that is wrong, because for a package that is
+  merely *stale* the diff **is** the staleness, and replaying it would revert the update that was
+  just pulled in. Deltas now live as explicit `-p1` patches under `patches/<pkg>/`, re-applied
+  after each rsync. Only `wlroots0.18` has one (`-D werror=false`). Verified: after a full sync
+  its PKGBUILD is byte-identical to before, so the delta round-trips cleanly.
+- `.previous-version`/`.current-version` are replaced by one `.build-state` per package holding
+  `pkgver`/`pkgrel`/`epoch`/`upstream_commit`. It is written **only after a successful build**, so
+  a failed build retries next run rather than being recorded as done. The old files were also
+  quietly broken: `chwd`'s had captured a comment line (`pkgrel=# pkgrel: bump on every…`),
+  `flameshot-git`'s had an empty `pkgrel=`, and `sway-scroll`/`tinty-git` had none — all four
+  forced a needless rebuild on every single run.
+- `seed-build-state.sh` bootstraps the state from the artifacts already in `nemesis_repo/x86_64/`,
+  matching a `-git` package's `.g<sha>` suffix against upstream HEAD. Without it the first run had
+  nothing to compare against and would have rebuilt all eighteen packages — the exact blind
+  rebuilding this change exists to stop. Artifacts are matched on the trailing `-pkgrel-arch`
+  shape rather than on the version, whose first character varies (`1.2`, `r2230`, `v1.0.1`, `1:140`).
+- **Five orphaned gitlinks removed.** `noctalia-git`, `sway-scroll`, `tinty-git`, `wlroots0.18` and
+  `dracula-colors-xfce4-terminal` were recorded as mode `160000` with **no `.gitmodules`**, so a
+  fresh clone of this repo produced empty directories. All are now plain tracked files;
+  `dracula-colors-xfce4-terminal` was a gitlink to a package that does not exist and is gone.
+- A committed `makepkg` srcdir checkout (a bare clone under `gnome-bluetooth/gnome-bluetooth/`,
+  24 files) is removed — it is regenerated at build time.
+- `sway-scroll` had no `build.sh` at all, so it was skipped every run and logged to `/tmp/failed`.
+  `copy-files-to-all-folders.sh` already copied to every subdirectory, so it simply had never been
+  re-run since that package was added; it now also excludes `patches/`.
+- `.nvchecker.toml` dropped from `arc-gtk-theme`, `gnome-bluetooth` and `sway-scroll` — redundant
+  once versions come from the AUR, and no `local`-class package had one, so nvchecker leaves the repo.
+- `--check` does not run `bump_version`, so a report-only run can never mutate a PKGBUILD.
+
+### Files Modified
+- `packages.conf` (new), `aur-sync.sh` (new), `seed-build-state.sh` (new)
+- `patches/wlroots0.18/0001-kiro-werror-false.patch` (new)
+- `build.sh`, `1-build-all-packages.sh`, `copy-files-to-all-folders.sh`
+- `build.sh` re-propagated to all 18 package dirs
+- Removed: all `.current-version`/`.previous-version`, three `.nvchecker.toml`,
+  `gnome-bluetooth/gnome-bluetooth/`, `dracula-colors-xfce4-terminal`
+
 ## 2026.09.14
 
 ### What Changed
