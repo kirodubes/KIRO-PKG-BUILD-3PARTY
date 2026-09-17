@@ -279,9 +279,19 @@ build_package() {
         return 1
     fi
 
+    # Overwrite rather than cp -n: we only get here because a rebuild was
+    # needed, and a VCS package can legitimately rebuild to the SAME filename.
+    # Refusing the copy there would leave the stale binary in the repo while
+    # the state file recorded a successful build.
     log_section "Copying packages to ${DESTINY}"
-    cp -nv /tmp/tempbuild/*"${PKGNAME}"*pkg.tar.zst "${DESTINY}" || \
-        log_warn "${PKGNAME} already exists in destination — skipping copy"
+    local built
+    for built in /tmp/tempbuild/*"${PKGNAME}"*pkg.tar.zst; do
+        [[ -e "${built}" ]] || continue
+        if [[ -e "${DESTINY}/$(basename "${built}")" ]]; then
+            log_warn "Replacing existing $(basename "${built}") in the repo"
+        fi
+        cp -fv "${built}" "${DESTINY}"
+    done
 
     local file_count
     file_count=$(find "${DESTINY}" -maxdepth 1 -name "${PKGNAME}*" -print | wc -l)

@@ -215,7 +215,6 @@ sync_package() {
         --exclude=.git \
         --exclude=build.sh \
         --exclude=.build-state \
-        --exclude=.aur-commit \
         --exclude=.current-version \
         --exclude=.previous-version \
         "${cache}/" "${target}/"
@@ -225,8 +224,6 @@ sync_package() {
         echo "${pkg}: Kiro patch failed to apply" >> /tmp/failed
         return 0
     fi
-
-    record_aur_commit "${pkg}"
 
     after="$(sha256sum "${target}/PKGBUILD" | cut -d' ' -f1)"
     [[ "${before}" != "${after}" ]] && CHANGED_PKGS+=("${pkg}")
@@ -249,15 +246,6 @@ apply_kiro_patches_against_cache() {
             return 1
         fi
     done
-}
-
-record_aur_commit() {
-    local pkg="$1"
-    local cache="${CACHE_DIR}/${pkg}"
-    local sha
-
-    sha="$(git -C "${cache}" rev-parse HEAD)"
-    printf 'aur_commit=%s\n' "${sha}" > "${SCRIPT_DIR}/${pkg}/.aur-commit"
 }
 
 sync_all() {

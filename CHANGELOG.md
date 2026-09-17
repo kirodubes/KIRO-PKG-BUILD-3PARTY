@@ -55,6 +55,11 @@
 - `.nvchecker.toml` dropped from `arc-gtk-theme`, `gnome-bluetooth` and `sway-scroll` — redundant
   once versions come from the AUR, and no `local`-class package had one, so nvchecker leaves the repo.
 - `--check` does not run `bump_version`, so a report-only run can never mutate a PKGBUILD.
+- The artifact copy **overwrites** instead of `cp -n`. A VCS package can legitimately rebuild to
+  the same filename (`hardcode-fixer-git` carries a static `pkgver=2.0` placeholder), and refusing
+  the copy there would leave the stale binary in `nemesis_repo` while `.build-state` recorded a
+  successful build. A replacement is logged rather than silent.
+- Dropped `.aur-commit`: it was written by the sync and read by nothing.
 
 ### Files Modified
 - `packages.conf` (new), `aur-sync.sh` (new), `seed-build-state.sh` (new)
