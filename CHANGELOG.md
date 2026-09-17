@@ -3,6 +3,7 @@
 ## 2026.09.17
 
 ### What Changed
+
 - **Rebuild detection now reads upstream instead of the local PKGBUILD.** The old flow compared
   the PKGBUILD literals against `.previous-version` — a local file-vs-file diff that only ever
   detects edits made by hand. Consequences: `lastpass` sat four releases behind (4.147.2 vs
@@ -21,6 +22,12 @@
   calls per full run.
 - **`--check` mode** on `1-build-all-packages.sh`: sync, report what would rebuild and why, then
   stop without building and **without calling `up.sh`**, which commits and pushes the live repo.
+
+- **Adopted `mir`, `miracle-wm-git` and `wasmedge` from KIRO-PKG-BUILD-APPS.** All three are AUR
+  clones and had no business in the APPS repo: they carry upstream versions rather than its `YY.MM`
+  scheme, each held its own nested `.git` pointing at `aur.archlinux.org`, and they were the only
+  three dirs there without a `build.sh` — so every APPS batch run listed them in its failure summary
+  as `(no build script)`. This repo already models exactly what they need.
 
 ### Technical Details
 - `packages.conf` classifies every package as `aur-fixed`, `aur-vcs` or `local`; a directory on
@@ -87,13 +94,34 @@
   Its build log was lost: on failure the log lives in `/tmp/tempbuild`, which the next package
   overwrites.
 
+  `2.28.0` pinned via `#tag=v${pkgver}`, and a `0.17.0` release tarball), `miracle-wm-git` as
+  `aur-vcs` with `PKG_UPSTREAM` pointing at `github.com/miracle-wm-org/miracle-wm.git`. Its
+  `source=` pins no branch, so it takes the default `HEAD` and gets no `PKG_UPSTREAM_REF` entry.
+- The nested `.git` in each was deleted: `aur-sync.sh` owns syncing from here on, cloning to
+  `~/.cache/kiro-aur/<pkg>` and rsyncing in with `--delete`.
+- `wasmedge` arrived with `pkg/` (mode `d--x--x--x`, unreadable), `src/` and a stale
+  `wasmedge-0.17.0.tar.gz` left over from an old local `makepkg` — 21M of debris that would have
+  broken `build.sh`'s `cp -r "${SCRIPT_DIR}/"*` on the unreadable directory. Removed; the dir is
+  now 224K.
+- `build.sh` distributed via `copy-files-to-all-folders.sh`; all 21 copies verified byte-identical
+  to the root template.
+- `seed-build-state.sh` seeded `mir` as already built (`2.28.0-1` is in `nemesis_repo`) and left
+  `miracle-wm-git` and `wasmedge` unseeded, so both rebuild on the next run.
+- A note was added recording that `mir` is a build dependency of `miracle-wm-git`. `find | sort`
+  orders them correctly, but `up.sh` regenerates the repo DB only at the *end* of a run, so a run
+  that rebuilds both from scratch needs a second pass. Not an issue today — `mir 2.28.0-1` is
+  already published.
+- `--check` verified: 20 packages, none unclassified, `miracle-wm-git` (upstream `..8629b1a`) and
+  `wasmedge` flagged for rebuild.
+
 ### Files Modified
 - `packages.conf` (new), `aur-sync.sh` (new), `seed-build-state.sh` (new)
 - `patches/wlroots0.18/0001-kiro-werror-false.patch` (new)
 - `build.sh`, `1-build-all-packages.sh`, `copy-files-to-all-folders.sh`
-- `build.sh` re-propagated to all 18 package dirs
+- `build.sh` re-propagated to all 20 package dirs
 - Removed: all `.current-version`/`.previous-version`, three `.nvchecker.toml`,
   `gnome-bluetooth/gnome-bluetooth/`, `dracula-colors-xfce4-terminal`
+- Adopted: `mir/`, `miracle-wm-git/`, `wasmedge/`
 
 ## 2026.09.14
 
