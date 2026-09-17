@@ -109,6 +109,7 @@ PKGNAME="$(basename "${SCRIPT_DIR}")"
 STATE_FILE="${SCRIPT_DIR}/.build-state"
 CHROOT="${HOME}/Documents/chroot-archlinux"
 DESTINY="${HOME}/EDU/nemesis_repo/x86_64/"
+LOG_DIR="/tmp/kiro-build-logs"
 UPDATE_CHROOT="true"
 CHECK_ONLY="false"
 BUILD_NEEDED="false"
@@ -249,6 +250,22 @@ update_chroot() {
     arch-nspawn "${CHROOT}/root" pacman -Syu --noconfirm
 }
 
+# makepkg writes its logs into the build dir, which is /tmp/tempbuild --
+# and the next package in a full run wipes that. Move them somewhere the
+# run cannot clobber, or a failure mid-run leaves nothing to diagnose.
+preserve_failed_logs() {
+    local dest="${LOG_DIR}/${PKGNAME}"
+
+    rm -rf "${dest}"
+    mkdir -p "${dest}"
+
+    find /tmp/tempbuild -maxdepth 1 -name '*.log' -exec cp {} "${dest}/" \; 2>/dev/null || true
+    [[ -f "${LOG_DIR}/${PKGNAME}-build.log" ]] && \
+        mv "${LOG_DIR}/${PKGNAME}-build.log" "${dest}/makechrootpkg-session.log"
+
+    printf '%s failed at %s\n' "${PKGNAME}" "$(date '+%Y-%m-%d %H:%M')" > "${dest}/FAILED"
+}
+
 # State is written only after a successful build, so a failed build is
 # retried on the next run instead of being recorded as done.
 write_state() {
@@ -268,16 +285,26 @@ build_package() {
     mkdir /tmp/tempbuild
     cp -r "${SCRIPT_DIR}/"* /tmp/tempbuild/
 
+    # Capture the whole session, not just makepkg's own logs: the failure may
+    # happen before makepkg ever starts (a sudo prompt with no tty, a chroot
+    # that will not sync), in which case there is no makepkg log to find.
+    local session_log="${LOG_DIR}/${PKGNAME}-build.log"
+    mkdir -p "${LOG_DIR}"
+
     log_section "Building ${PKGNAME} in CHROOT ${CHROOT}"
-    if (cd /tmp/tempbuild && makechrootpkg -c -r "${CHROOT}"); then
+    if (cd /tmp/tempbuild && makechrootpkg -c -r "${CHROOT}") 2>&1 | tee "${session_log}"; then
         success="true"
     fi
 
     if [[ "${success}" != "true" ]]; then
-        log_error "Build FAILED for ${PKGNAME} — state not updated, will retry next run"
-        echo "${PKGNAME}: build failed" >> /tmp/failed
+        preserve_failed_logs
+        log_error "Build FAILED for ${PKGNAME} — state not updated, will retry next run
+Logs kept in ${LOG_DIR}/${PKGNAME}/"
+        echo "${PKGNAME}: build failed — logs in ${LOG_DIR}/${PKGNAME}/" >> /tmp/failed
         return 1
     fi
+
+    rm -f "${session_log}"
 
     # Overwrite rather than cp -n: we only get here because a rebuild was
     # needed, and a VCS package can legitimately rebuild to the SAME filename.

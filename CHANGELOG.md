@@ -60,6 +60,14 @@
   the copy there would leave the stale binary in `nemesis_repo` while `.build-state` recorded a
   successful build. A replacement is logged rather than silent.
 - Dropped `.aur-commit`: it was written by the sync and read by nothing.
+- **Failed builds now keep their logs.** `makepkg` writes logs into the build dir (`/tmp/tempbuild`),
+  which the next package in a full run wipes — so a mid-run failure left nothing to diagnose, as
+  happened with `opera-ffmpeg-codecs-bin`. The failure path now copies them to
+  `/tmp/kiro-build-logs/<pkg>/` and `/tmp/failed` names that directory. The whole `makechrootpkg`
+  session is tee'd as well, not just makepkg's own logs, because the failure can occur *before*
+  makepkg starts (a sudo prompt with no tty, a chroot that will not sync) — in which case there is
+  no makepkg log to preserve at all. Verified against a deliberately failing PKGBUILD: exit 1, logs
+  kept, reason captured, and no `.build-state` written.
 
 ### Build run results (first real exercise of the new flow)
 
@@ -67,6 +75,8 @@
   check predicted: `ckb-next-git` r161.g833ab509, `flameshot-git` r2369.3458585e, `noctalia-git`
   r5554.g8c52cb71b, `tinty-git` r326.475079f. Fixed-version: `lastpass` 4.151.5, `pamac-aur`
   11.7.5, `sway-scroll` 1.12.21.
+- `flameshot-git` was rebuilt again the same day to `r2370.89861c4a` after upstream pushed past
+  the morning's `3458585e` — the drift rate that keeps `aur-vcs` advisory rather than a release gate.
 - **`hardcode-fixer-git` rebuilt to the identical filename** `2.0-1` — its `pkgver()` fell back to
   the static placeholder rather than a commit-embedded version. This is the exact case the `cp -n`
   → overwrite change was made for: the old behaviour would have kept the stale binary in
