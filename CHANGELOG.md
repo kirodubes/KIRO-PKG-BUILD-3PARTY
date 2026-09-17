@@ -61,6 +61,22 @@
   successful build. A replacement is logged rather than silent.
 - Dropped `.aur-commit`: it was written by the sync and read by nothing.
 
+### Build run results (first real exercise of the new flow)
+
+- **9 of 10 flagged packages built and published.** Each VCS artifact matched the commit the new
+  check predicted: `ckb-next-git` r161.g833ab509, `flameshot-git` r2369.3458585e, `noctalia-git`
+  r5554.g8c52cb71b, `tinty-git` r326.475079f. Fixed-version: `lastpass` 4.151.5, `pamac-aur`
+  11.7.5, `sway-scroll` 1.12.21.
+- **`hardcode-fixer-git` rebuilt to the identical filename** `2.0-1` — its `pkgver()` fell back to
+  the static placeholder rather than a commit-embedded version. This is the exact case the `cp -n`
+  → overwrite change was made for: the old behaviour would have kept the stale binary in
+  `nemesis_repo` while `.build-state` recorded a successful build.
+- **`opera-ffmpeg-codecs-bin` failed and correctly wrote no `.build-state`**, so it stayed flagged
+  for retry instead of being recorded as done — the failure guard working as designed. The package
+  has since been removed from the repo entirely and dropped from `packages.conf` (17 packages now).
+  Its build log was lost: on failure the log lives in `/tmp/tempbuild`, which the next package
+  overwrites.
+
 ### Files Modified
 - `packages.conf` (new), `aur-sync.sh` (new), `seed-build-state.sh` (new)
 - `patches/wlroots0.18/0001-kiro-werror-false.patch` (new)
