@@ -113,6 +113,17 @@
   already published.
 - `--check` verified: 20 packages, none unclassified, `miracle-wm-git` (upstream `..8629b1a`) and
   `wasmedge` flagged for rebuild.
+- **The first `aur-sync.sh` pass silently dropped a Kiro local delta from `miracle-wm-git`.** Its
+  `build()` had symlinked a private `wasmedge/` include dir and passed `-DWASMEDGE_INCLUDE_DIR`,
+  because `wasmedge-bin` ships headers flat in `/usr/include` with no `wasmedge/` subdir while
+  miracle-wm does `#include <wasmedge/wasmedge.h>`. The rsync runs with `--delete`, so it went —
+  the exact failure `packages.conf` already guards against for `wlroots0.18`, which `miracle-wm-git`
+  had no note for. Keeping it dropped is correct now that this repo builds `wasmedge` from source
+  (the AUR recipe's `depends=(wasmedge)` is then satisfied by a package with a normal header
+  layout), so the note added to `packages.conf` records that the delta must **not** be re-added, and
+  what to do if `wasmedge-bin` ever comes back. Recoverable from commit `a870254` either way.
+- The same sync added `gtk4` and `gtk4-layer-shell` to miracle's `depends` — a genuine upstream
+  change, not a local edit.
 
 ### Files Modified
 - `packages.conf` (new), `aur-sync.sh` (new), `seed-build-state.sh` (new)
