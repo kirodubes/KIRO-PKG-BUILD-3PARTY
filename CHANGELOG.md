@@ -1,5 +1,36 @@
 # Changelog
 
+## 2026.09.18
+
+### What Changed
+
+- **Added `cpuid` to this repo.** Todd Allen's x86 CPUID dumper. An artifact
+  (`cpuid-20260220-1`) was already sitting in `nemesis_repo/x86_64/`, but no source directory
+  for it existed anywhere on the box — it had been built outside this flow and was four months
+  stale against the AUR's `20260503-1`. It is now a first-class package dir here, so the normal
+  sync/check/rebuild cycle keeps it current.
+
+### Technical Details
+- Class `aur-fixed`: `source=` is a plain `http://www.etallen.com/...src.tar.gz` tarball with a
+  `sha256sums` pin — no `git+` line, so the AUR `pkgver` is the honest rebuild signal and no
+  `PKG_UPSTREAM` entry is needed.
+- The tree was pulled into `~/.cache/kiro-aur/cpuid` and rsynced in exactly as `aur-sync.sh`
+  does it, so the cache is already warm and consistent for the next sync.
+- `.build-state` deliberately left absent rather than seeded to the stale `20260220-1`: this repo
+  has never built cpuid, and a plausible-but-false state file is worse than none — absent means
+  "needs build", which is exactly true. `1-build-all-packages.sh --check` confirms:
+  `cpuid: REBUILD NEEDED (version <none>-<none> -> 20260503-1)`.
+- The new build will land as `cpuid-20260503-1-x86_64.pkg.tar.zst`, a **different filename** from
+  the stale `20260220-1` artifact, so `build_package`'s overwrite does not replace it.
+  `repo.sh` re-adds every file in `x86_64/`, leaving the superseded package orphaned in the repo
+  and in git. It needs removing by hand.
+
+### Files Modified
+- `packages.conf` — classified `cpuid` as `aur-fixed`
+- `cpuid/PKGBUILD`, `cpuid/.SRCINFO` — new, synced from the AUR
+- `cpuid/build.sh` — dropped in by `copy-files-to-all-folders.sh`
+- `CHANGELOG.md`
+
 ## 2026.09.17
 
 ### What Changed
