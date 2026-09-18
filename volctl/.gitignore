@@ -1,0 +1,12 @@
+\#*#
+.#*
+*~
+volctl-*.pkg.tar.zst
+volctl-*.pkg.tar.xz
+volctl-*.tar.gz
+volctl/
+src/
+pkg/
+.BUILDINFO
+.MTREE
+.PKGINFO

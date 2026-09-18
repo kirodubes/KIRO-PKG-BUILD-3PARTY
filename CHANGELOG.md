@@ -9,6 +9,10 @@
   for it existed anywhere on the box — it had been built outside this flow and was four months
   stale against the AUR's `20260503-1`. It is now a first-class package dir here, so the normal
   sync/check/rebuild cycle keeps it current.
+- **Added `volctl` to this repo.** Per-application volume control and OSD. Same story as cpuid:
+  `volctl-0.9.5-1-any` was already in `nemesis_repo/x86_64/` with no source directory anywhere on
+  the box, stale against the AUR's `1.0.0-2`. Arch itself does not ship it (`core`/`extra`/
+  `multilib` all clean), so this repo is the right home for it.
 
 ### Technical Details
 - Class `aur-fixed`: `source=` is a plain `http://www.etallen.com/...src.tar.gz` tarball with a
@@ -28,11 +32,30 @@
 - **Not built in this session.** `build.sh` gets as far as the chroot update and stops there:
   `arch-nspawn`/`makechrootpkg` need interactive sudo, which a non-interactive run cannot answer.
   The package dir is complete and `--check` reports it correctly; the build itself is pending.
+- `volctl` is class `aur-fixed`: `source=` is a plain GitHub release tarball pinned with `b2sums`,
+  no `git+` line, so no `PKG_UPSTREAM` entry is needed. Tree cloned to `~/.cache/kiro-aur/volctl`
+  and rsynced in with `aur-sync.sh`'s excludes; `LICENSE`, `LICENSES/` and `REUSE.toml` ride along
+  from the AUR as shipped. `build.sh` was dropped in with a surgical `cp` rather than
+  `copy-files-to-all-folders.sh`, which would have rewritten all 22 package dirs.
+- **volctl changed language and architecture upstream.** 0.9.5 was Python (`arch=any`); 1.0.0 is a
+  Rust rewrite (`arch=(x86_64 aarch64)`, `makedepends=cargo`, `gtk4` + `gtk4-layer-shell`). So the
+  new build lands as `volctl-1.0.0-2-x86_64.pkg.tar.zst` — a different filename *and* a different
+  arch from the `0.9.5-1-any` artifact, which therefore is not overwritten. That stale pair
+  (`.pkg.tar.zst` **and** its `.sig`) needs removing by hand after a green build, same ordering
+  caveat as cpuid. Recorded in the `packages.conf` notes block.
+- All five build deps resolve in `extra`/`core` today (gtk4 1:4.22.5, gtk4-layer-shell 1.3.0,
+  glib2 2.88.3, cairo 1.18.4, libpulse 17.0), so nothing blocks the build but sudo.
+- `volctl` was added with [/kiro-add-3party-package](/home/erik/.claude/commands/kiro-add-3party-package.md),
+  the new command written the same day to codify the cpuid flow — this was its first real run.
 
 ### Files Modified
-- `packages.conf` — classified `cpuid` as `aur-fixed`
+- `packages.conf` — classified `cpuid` as `aur-fixed`, classified `volctl` as `aur-fixed`, and
+  added a notes-block entry for the volctl arch change
 - `cpuid/PKGBUILD`, `cpuid/.SRCINFO` — new, synced from the AUR
 - `cpuid/build.sh` — dropped in by `copy-files-to-all-folders.sh`
+- `volctl/PKGBUILD`, `volctl/.SRCINFO`, `volctl/LICENSE`, `volctl/LICENSES/`, `volctl/REUSE.toml`,
+  `volctl/.gitignore` — new, synced from the AUR
+- `volctl/build.sh` — copied from the repo root
 - `CHANGELOG.md`
 
 ## 2026.09.17
