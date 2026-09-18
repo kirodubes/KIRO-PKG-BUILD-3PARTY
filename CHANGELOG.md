@@ -32,9 +32,11 @@
   `repo.sh` re-adds every file in `x86_64/`, leaving the superseded package orphaned in the repo
   and in git. It needs removing by hand, but only **after** a green build — deleting first would
   leave the repo with no cpuid at all if the build fails.
-- **Not built in this session.** `build.sh` gets as far as the chroot update and stops there:
-  `arch-nspawn`/`makechrootpkg` need interactive sudo, which a non-interactive run cannot answer.
-  The package dir is complete and `--check` reports it correctly; the build itself is pending.
+- **Built by Erik outside the agent session.** `build.sh` run from the agent stops at the chroot
+  update — `arch-nspawn`/`makechrootpkg` need interactive sudo, which a non-interactive run cannot
+  answer. Run with a real terminal it went green: `cpuid-20260503-1-x86_64.pkg.tar.zst` landed and
+  was signed, `cpuid/.build-state` records `20260503-1 built=2026-09-18`, and the superseded
+  `20260220-1` artifact has been removed from `nemesis_repo/x86_64/`.
 - `volctl` is class `aur-fixed`: `source=` is a plain GitHub release tarball pinned with `b2sums`,
   no `git+` line, so no `PKG_UPSTREAM` entry is needed. Tree cloned to `~/.cache/kiro-aur/volctl`
   and rsynced in with `aur-sync.sh`'s excludes; `LICENSE`, `LICENSES/` and `REUSE.toml` ride along
@@ -48,10 +50,13 @@
   caveat as cpuid. Recorded in the `packages.conf` notes block.
 - All five build deps resolve in `extra`/`core` today (gtk4 1:4.22.5, gtk4-layer-shell 1.3.0,
   glib2 2.88.3, cairo 1.18.4, libpulse 17.0), so nothing blocks the build but sudo.
-- **Not built in this session**, for the same reason as cpuid: `sudo -n true` fails on this box, so
-  `makechrootpkg`/`arch-nspawn` cannot run non-interactively. The package dir is complete,
-  `--check` reports `volctl: REBUILD NEEDED (version <none>-<none> → 1.0.0-2)`, and
-  `volctl/.build-state` stays absent until a real build writes it.
+- **Built by Erik outside the agent session**, for the same sudo reason as cpuid — `sudo -n true`
+  fails on this box, and the agent's own `bash build.sh` stopped at
+  `sudo: a terminal is required to read the password` having written nothing, which is the correct
+  failure path. Run with a real terminal it went green: `volctl-1.0.0-2-x86_64.pkg.tar.zst` landed
+  and was signed, and `volctl/.build-state` records `1.0.0-2 built=2026-09-18`.
+- **The volctl orphan is cleared.** `volctl-0.9.5-1-any.pkg.tar.zst` and its `.sig` were removed
+  from `nemesis_repo/x86_64/` after the green build, in that order — nothing outstanding.
 - `volctl` was added with [/kiro-add-3party-package](/home/erik/.claude/commands/kiro-add-3party-package.md),
   the new command written the same day to codify the cpuid flow — this was its first real run.
 - `blueberry` is class `aur-fixed`: plain GitHub tarball pinned with `sha256sums`, no `git+` line,
