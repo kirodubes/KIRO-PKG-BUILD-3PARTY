@@ -75,6 +75,11 @@
   today. Both resolve through `provides` — `util-linux` provides `rfkill`, `xapp` provides
   `xapps` — so the PKGBUILD is **not** broken and must not be "fixed" with a local delta. Recorded
   in the notes block so the next reader does not re-investigate it.
+- **All three dependency claims were verified against the build chroot's databases, not the
+  host's** — `makechrootpkg` resolves inside `~/Documents/chroot-archlinux`, so a host-only check
+  would have proved nothing. The chroot has `nemesis_repo` configured alongside
+  `core`/`extra`/`chaotic-aur`/`cachyos`, and `gnome-bluetooth` resolves there from `nemesis_repo`
+  specifically, not from chaotic-aur or cachyos.
 - **Not built in this session**, same sudo wall as cpuid and volctl: `build.sh` reaches the chroot
   update and stops at `sudo: a terminal is required to read the password`. `.build-state` stays
   absent, which is the correct retry-next-run state.
