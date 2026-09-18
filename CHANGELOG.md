@@ -45,6 +45,10 @@
   caveat as cpuid. Recorded in the `packages.conf` notes block.
 - All five build deps resolve in `extra`/`core` today (gtk4 1:4.22.5, gtk4-layer-shell 1.3.0,
   glib2 2.88.3, cairo 1.18.4, libpulse 17.0), so nothing blocks the build but sudo.
+- **Not built in this session**, for the same reason as cpuid: `sudo -n true` fails on this box, so
+  `makechrootpkg`/`arch-nspawn` cannot run non-interactively. The package dir is complete,
+  `--check` reports `volctl: REBUILD NEEDED (version <none>-<none> → 1.0.0-2)`, and
+  `volctl/.build-state` stays absent until a real build writes it.
 - `volctl` was added with [/kiro-add-3party-package](/home/erik/.claude/commands/kiro-add-3party-package.md),
   the new command written the same day to codify the cpuid flow — this was its first real run.
 
