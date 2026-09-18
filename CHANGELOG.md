@@ -13,6 +13,9 @@
   `volctl-0.9.5-1-any` was already in `nemesis_repo/x86_64/` with no source directory anywhere on
   the box, stale against the AUR's `1.0.0-2`. Arch itself does not ship it (`core`/`extra`/
   `multilib` all clean), so this repo is the right home for it.
+- **Added `blueberry` to this repo.** Linux Mint's Bluetooth configuration tool, and the reason
+  `gnome-bluetooth` is vendored here at all. Third package in a row found with an artifact already
+  in `nemesis_repo/x86_64/` and no source directory anywhere on the box.
 
 ### Technical Details
 - Class `aur-fixed`: `source=` is a plain `http://www.etallen.com/...src.tar.gz` tarball with a
@@ -51,6 +54,25 @@
   `volctl/.build-state` stays absent until a real build writes it.
 - `volctl` was added with [/kiro-add-3party-package](/home/erik/.claude/commands/kiro-add-3party-package.md),
   the new command written the same day to codify the cpuid flow — this was its first real run.
+- `blueberry` is class `aur-fixed`: plain GitHub tarball pinned with `sha256sums`, no `git+` line,
+  so no `PKG_UPSTREAM` entry. **Unlike cpuid and volctl it is not stale** — the AUR is at `1.4.8-2`
+  and so is the artifact already in the repo. The rebuild therefore lands under the *same*
+  filename (`blueberry-1.4.8-2-any.pkg.tar.zst`) and `build_package` overwrites it in place, so
+  there is no orphan to clean up. It still shows as `REBUILD NEEDED (<none>-<none> → 1.4.8-2)`,
+  which is correct: this repo has never built it and needs one build to take ownership.
+- **`blueberry` is why `gnome-bluetooth` must stay vendored.** Its `depends=(gnome-bluetooth)` can
+  only be satisfied from `nemesis_repo`: Arch ships no package named `gnome-bluetooth` at all, only
+  `gnome-bluetooth-3.0` (47.2), which does **not** `provides` it. Checked rather than assumed.
+- `find | sort` builds `blueberry` (b) before `gnome-bluetooth` (g), so on a from-scratch repo the
+  first blueberry build fails for want of it and succeeds on the next run — the same ordering
+  hazard already documented for `mir` / `miracle-wm-git`. Noted in `packages.conf`.
+- Its `depends=` also lists `rfkill` and `xapps`, neither of which is a real package name on Arch
+  today. Both resolve through `provides` — `util-linux` provides `rfkill`, `xapp` provides
+  `xapps` — so the PKGBUILD is **not** broken and must not be "fixed" with a local delta. Recorded
+  in the notes block so the next reader does not re-investigate it.
+- **Not built in this session**, same sudo wall as cpuid and volctl: `build.sh` reaches the chroot
+  update and stops at `sudo: a terminal is required to read the password`. `.build-state` stays
+  absent, which is the correct retry-next-run state.
 
 ### Files Modified
 - `packages.conf` — classified `cpuid` as `aur-fixed`, classified `volctl` as `aur-fixed`, and
@@ -60,6 +82,9 @@
 - `volctl/PKGBUILD`, `volctl/.SRCINFO`, `volctl/LICENSE`, `volctl/LICENSES/`, `volctl/REUSE.toml`,
   `volctl/.gitignore` — new, synced from the AUR
 - `volctl/build.sh` — copied from the repo root
+- `blueberry/PKGBUILD`, `blueberry/.SRCINFO`, `blueberry/LICENSE`, `blueberry/LICENSES/`,
+  `blueberry/REUSE.toml`, `blueberry/.nvchecker.toml` — new, synced from the AUR
+- `blueberry/build.sh` — copied from the repo root
 - `CHANGELOG.md`
 
 ## 2026.09.17
