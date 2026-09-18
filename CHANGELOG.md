@@ -23,7 +23,11 @@
 - The new build will land as `cpuid-20260503-1-x86_64.pkg.tar.zst`, a **different filename** from
   the stale `20260220-1` artifact, so `build_package`'s overwrite does not replace it.
   `repo.sh` re-adds every file in `x86_64/`, leaving the superseded package orphaned in the repo
-  and in git. It needs removing by hand.
+  and in git. It needs removing by hand, but only **after** a green build — deleting first would
+  leave the repo with no cpuid at all if the build fails.
+- **Not built in this session.** `build.sh` gets as far as the chroot update and stops there:
+  `arch-nspawn`/`makechrootpkg` need interactive sudo, which a non-interactive run cannot answer.
+  The package dir is complete and `--check` reports it correctly; the build itself is pending.
 
 ### Files Modified
 - `packages.conf` — classified `cpuid` as `aur-fixed`
