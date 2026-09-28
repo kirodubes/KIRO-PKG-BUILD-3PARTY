@@ -1,4 +1,0 @@
-[mir]
-source = "git"
-git = "https://github.com/canonical/mir.git"
-prefix = "v"

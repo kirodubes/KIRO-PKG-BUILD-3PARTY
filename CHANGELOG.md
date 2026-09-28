@@ -1,5 +1,34 @@
 # Changelog
 
+## 2026.09.28
+
+### What Changed
+- **Dropped Miracle from Kiro entirely: `mir`, `miracle-wm-git` and `wasmedge` are gone from this
+  repo.** The `miracle-wm-git` build failed at link time: the `mir-2.28.0-1` in `nemesis_repo` was
+  built against boost 1.91 and the chroot now has `boost-libs 1.92.0`, so `libmirserver.so` /
+  `libmirplatform.so` could not resolve `libboost_program_options.so.1.91.0`. The forced `mir`
+  rebuild then failed before compiling anything: its `makedepends` lists `wlcs`, which is AUR-only
+  and no longer resolves in any repo the chroot uses. Rather than patch around a vendored display
+  server that silently breaks on every boost soname bump, Miracle was removed from ATT, the repo and
+  all public copy.
+- `wasmedge` existed here only to satisfy miracle-wm's `depends=(wasmedge)`; no other PKGBUILD in
+  any build repo uses it, so it went with it.
+
+### Technical Details
+- `mir` is `aur-fixed` and its AUR version never moved, so `check_version` would never have rebuilt
+  it on its own — the boost breakage was invisible until a dependent failed. `build.sh` has no
+  `--force`; the rebuild was forced by deleting `mir/.build-state`.
+- `packages.conf`: `mir`, `wasmedge` (aur-fixed) and `miracle-wm-git` (aur-vcs + its
+  `PKG_UPSTREAM`) removed, along with the `mir` and `miracle-wm-git` notes. The `blueberry` note
+  pointed at the mir note for its build-ordering explanation; it now states the reason itself.
+- Artifacts removed from `nemesis_repo` separately (`mir`, `miracle-wm-git`, `kiro-miracle`,
+  `wasmedge`, and the older `wasmedge-bin` stand-in).
+
+### Files Modified
+- `mir/`, `miracle-wm-git/`, `wasmedge/` — deleted
+- `packages.conf`
+- `CHANGELOG.md`
+
 ## 2026.09.18
 
 ### What Changed

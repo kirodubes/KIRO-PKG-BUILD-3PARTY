@@ -1,0 +1,3 @@
+[codespell]
+# Proper names in CHANGELOG (wlroots signing keys: Simon Ser, Drew DeVault)
+ignore-words-list = ser,devault
