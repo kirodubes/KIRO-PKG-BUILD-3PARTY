@@ -1,5 +1,29 @@
 # Changelog
 
+## 2026.10.04
+
+### What Changed
+- **Added `wvkbd` 0.20, an on-screen keyboard for wlroots compositors.** The KIROTUX Wayland ISOs dropped
+  `onboard`, which is X11-only and never appears on Hyprland/niri/wayfire. `wvkbd` is the Wayland
+  replacement for the desktop session. The login screen keeps its own keyboard (`qt5-virtualkeyboard`).
+  `wvkbd` is AUR-only and isn't in Arch, chaotic-aur or cachyos, so it has to be built here for the ISOs
+  to install it from `nemesis_repo`.
+
+### Technical Details
+- Class **`aur-fixed`**: the AUR `source=` is a release tarball from sr.ht
+  (`archive/v$pkgver.tar.gz`) pinned by `sha512sums`, so the AUR `pkgver` is an honest rebuild signal.
+  No `PKG_UPSTREAM` entry is needed.
+- The tree was landed through the `~/.cache/kiro-aur/wvkbd` clone as `aur-sync.sh` does it: `PKGBUILD` +
+  `.SRCINFO`, no local delta. `build.sh` was copied verbatim.
+- `--check` reports `wvkbd: REBUILD NEEDED (version <none>-<none> → 0.20-1)`.
+- **Build pending:** `makechrootpkg` needs interactive sudo, so the build wasn't run in this session.
+  `wvkbd/.build-state` is absent on purpose and gets committed with the first green build.
+- There was no earlier artifact in `nemesis_repo`, so there is no orphan to clean up.
+
+### Files Modified
+- `wvkbd/PKGBUILD`, `wvkbd/.SRCINFO`, `wvkbd/build.sh` (new)
+- `packages.conf`: `[wvkbd]="aur-fixed"`
+
 ## 2026.09.28
 
 ### What Changed
