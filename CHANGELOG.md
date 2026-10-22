@@ -1,5 +1,28 @@
 # Changelog
 
+## 2026.10.22
+
+### What Changed
+- **Added `python-pywal16` 3.8.15, the maintained fork of pywal.** The original pywal was archived on 2024-04-26;
+  its last release (3.3.0, in `nemesis_repo` as `python-pywal`) fails on flat wallpapers ("Imagemagick couldn't
+  generate a suitable palette"), so a Variety recolour did nothing for about 1 in 25 wallpapers. pywal16 keeps the
+  same `wal` command and `~/.cache/wal/colors.sh`, and recoloured every test wallpaper on two bare-metal wayfire
+  installs, the failing one included. First user: `kiro-wayfire`; the other pywal editions follow later.
+
+### Technical Details
+- Class **`aur-fixed`**: the AUR `source=` is the GitHub release tarball (`archive/refs/tags/$pkgver.tar.gz`) pinned
+  by `sha256sums`, so the AUR `pkgver` is an honest rebuild signal. No `PKG_UPSTREAM` entry.
+- `epoch=1`, `provides`/`conflicts` `python-pywal`: installing it replaces the old package on user systems.
+- Tree landed through `~/.cache/kiro-aur/python-pywal16` (`PKGBUILD`, `.SRCINFO`, `.gitignore`), no local delta;
+  `build.sh` copied verbatim. `--check`: `REBUILD NEEDED (version <none>-<none> → 3.8.15-1)`.
+- **Build pending** (interactive sudo); `.build-state` comes with the first green build.
+- `python-pywal` 3.3.0 stays in `nemesis_repo` (not built from this repo, still needed by kiro-sway, scroll, river,
+  labwc and mango): no orphan.
+
+### Files Modified
+- `python-pywal16/PKGBUILD`, `python-pywal16/.SRCINFO`, `python-pywal16/.gitignore`, `python-pywal16/build.sh` (new)
+- `packages.conf`: `[python-pywal16]="aur-fixed"`
+
 ## 2026.10.04
 
 ### What Changed
