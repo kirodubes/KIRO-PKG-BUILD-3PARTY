@@ -15,7 +15,7 @@
 - `epoch=1`, `provides`/`conflicts` `python-pywal`: installing it replaces the old package on user systems.
 - Tree landed through `~/.cache/kiro-aur/python-pywal16` (`PKGBUILD`, `.SRCINFO`, `.gitignore`), no local delta;
   `build.sh` copied verbatim. `--check`: `REBUILD NEEDED (version <none>-<none> → 3.8.15-1)`.
-- **Build pending** (interactive sudo); `.build-state` comes with the first green build.
+- Built the same day (Erik): `python-pywal16-1:3.8.15-1-any.pkg.tar.zst` in `nemesis_repo`, `.build-state` committed.
 - `python-pywal` 3.3.0 stays in `nemesis_repo` (not built from this repo, still needed by kiro-sway, scroll, river,
   labwc and mango): no orphan.
 
