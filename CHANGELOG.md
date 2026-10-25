@@ -3,11 +3,19 @@
 ## 2026.10.25
 
 ### What Changed
+- **Retired `noctalia-git`.** Nothing used it. The two KiroTux Noctalia editions and their packages
+  (`kiro-noctalia`, `kiro-hyprland-noctalia`, `kiro-niri-noctalia`, `kiro-hyprland-noctura`) depend on `noctalia`,
+  which pacman takes from [extra] (5.3.0) ahead of nemesis_repo. The package in nemesis_repo was also broken: its
+  published version `.r5623.gf7f767034-1` lost the `5.x` prefix. chaotic-aur still carries a `noctalia-git` for
+  anyone who wants a bleeding-edge build.
 - **`python-pywal16` now replaces `python-pywal`.** The AUR package only provides and conflicts with `python-pywal`,
   and pacman never swaps an installed package for that alone. Installed Kiro systems stayed on the archived pywal 3.3
   after `-Syu`. With `replaces`, pacman offers the swap on the next update.
 
 ### Technical Details
+- `noctalia-git/` removed, along with its three `packages.conf` entries (class, upstream URL, upstream ref).
+  `PKG_UPSTREAM_REF` is now empty; `build.sh` falls back to `HEAD`. The package and its signature were deleted from
+  `nemesis_repo` and the database was rebuilt.
 - New Kiro local delta `patches/python-pywal16/0001-kiro-replaces-python-pywal.patch`, applied by `aur-sync.sh` after
   each sync, so the AUR tree stays untouched. It is applied to `python-pywal16/PKGBUILD` now.
 - The version stays `1:3.8.15-1`, so `python-pywal16/.build-state` was deleted: without it `build.sh` reports
@@ -20,6 +28,7 @@
 - `patches/python-pywal16/0001-kiro-replaces-python-pywal.patch` (new)
 - `python-pywal16/PKGBUILD`, `python-pywal16/.build-state` (removed)
 - `packages.conf`, `CLAUDE.md`
+- `noctalia-git/` (removed)
 
 ## 2026.10.22
 
