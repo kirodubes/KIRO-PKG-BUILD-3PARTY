@@ -1,0 +1,21 @@
+From: Erik Dubois <erik.dubois@gmail.com>
+Subject: [PATCH] Kiro: replaces=('python-pywal')
+
+provides/conflicts alone never swaps an installed python-pywal on
+pacman -Syu; replaces does. Installed Kiro systems still on the archived
+pywal 3.3 move to pywal16 on their next update.
+
+Local Kiro delta, not upstream AUR.
+---
+diff --git a/PKGBUILD b/PKGBUILD
+index 6c86a97..dd60a2e 100644
+--- a/PKGBUILD
++++ b/PKGBUILD
+@@ -50,6 +50,7 @@ conflicts=(
+   'pywal'
+   'python-pywal'
+ )
++replaces=('python-pywal')
+ source=("${_archive_name}::${url}/archive/refs/tags/${pkgver}.tar.gz")
+ sha256sums=('cd3e4588c453b844dd222d861b52b7a7c88a3396b3e104300ef1db27b9492b1d')
+ 

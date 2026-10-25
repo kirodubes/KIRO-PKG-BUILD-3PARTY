@@ -1,5 +1,26 @@
 # Changelog
 
+## 2026.10.25
+
+### What Changed
+- **`python-pywal16` now replaces `python-pywal`.** The AUR package only provides and conflicts with `python-pywal`,
+  and pacman never swaps an installed package for that alone. Installed Kiro systems stayed on the archived pywal 3.3
+  after `-Syu`. With `replaces`, pacman offers the swap on the next update.
+
+### Technical Details
+- New Kiro local delta `patches/python-pywal16/0001-kiro-replaces-python-pywal.patch`, applied by `aur-sync.sh` after
+  each sync, so the AUR tree stays untouched. It is applied to `python-pywal16/PKGBUILD` now.
+- The version stays `1:3.8.15-1`, so `python-pywal16/.build-state` was deleted: without it `build.sh` reports
+  `REBUILD NEEDED` and rebuilds the package. The rebuilt package keeps the same filename and overwrites the old one in
+  `nemesis_repo`. `repo-add` writes the new `replaces` into the database, and that is what `-Syu` reads.
+- Editions that depend on `python-pywal` (kiro-sway, scroll, river, labwc, mango) are still satisfied through
+  `provides`.
+
+### Files Modified
+- `patches/python-pywal16/0001-kiro-replaces-python-pywal.patch` (new)
+- `python-pywal16/PKGBUILD`, `python-pywal16/.build-state` (removed)
+- `packages.conf`, `CLAUDE.md`
+
 ## 2026.10.22
 
 ### What Changed

@@ -50,6 +50,7 @@ conflicts=(
   'pywal'
   'python-pywal'
 )
+replaces=('python-pywal')
 source=("${_archive_name}::${url}/archive/refs/tags/${pkgver}.tar.gz")
 sha256sums=('cd3e4588c453b844dd222d861b52b7a7c88a3396b3e104300ef1db27b9492b1d')
 
