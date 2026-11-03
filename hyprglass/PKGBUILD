@@ -1,0 +1,28 @@
+# Maintainer: Erik Dubois <erik.dubois@gmail.com>
+# Kiro-local recipe (not on the AUR). A Hyprland plugin must be built against the exact
+# Hyprland it runs on: bump _commit to the pin upstream's hyprpm.toml lists for the new
+# Hyprland commit, and rebuild, on EVERY Hyprland update. A mismatched build is refused
+# at load time and the session runs without it.
+pkgname=hyprglass
+pkgver=1.1.1
+_commit=03a57c4451b4abee38feda2ffb725f55ecc0f2fd   # hyprpm.toml pin for Hyprland 0.57.0
+pkgrel=1
+pkgdesc="Liquid-glass effect plugin for Hyprland (used by kiro-hyprland-impasto)"
+arch=('x86_64')
+url="https://github.com/hyprnux/hyprglass"
+license=('BSD-3-Clause')
+depends=('hyprland')
+makedepends=('git' 'pkgconf' 'wayland' 'pixman' 'libdrm')
+source=("${pkgname}::git+${url}.git#commit=${_commit}")
+sha256sums=('SKIP')
+
+build() {
+	cd "${srcdir}/${pkgname}"
+	make HYPRGLASS_VERSION="${pkgver}"
+}
+
+package() {
+	cd "${srcdir}/${pkgname}"
+	install -Dm755 hyprglass.so "${pkgdir}/usr/lib/hyprland-plugins/hyprglass.so"
+	install -Dm644 LICENSE "${pkgdir}/usr/share/licenses/${pkgname}/LICENSE"
+}

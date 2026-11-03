@@ -1,0 +1,28 @@
+# Maintainer: Erik Dubois <erik.dubois@gmail.com>
+# Kiro-local recipe (not on the AUR). A Hyprland plugin must be built against the exact
+# Hyprland it runs on: bump _commit to the pin upstream's hyprpm.toml lists for the new
+# Hyprland commit (main HEAD while upstream has no pin yet), and rebuild, on EVERY Hyprland
+# update. A mismatched build is refused at load time and the session runs without it.
+pkgname=hypr-dynamic-cursors
+pkgver=0.r20261005.2a8d0b7
+_commit=2a8d0b7   # main HEAD 2026-10-05; hyprpm.toml has no Hyprland 0.57.0 pin yet
+pkgrel=1
+pkgdesc="Hyprland plugin: shake the pointer to find it (used by kiro-hyprland-impasto)"
+arch=('x86_64')
+url="https://github.com/VirtCode/hypr-dynamic-cursors"
+license=('MIT')
+depends=('hyprland')
+makedepends=('git' 'pkgconf' 'pixman' 'libdrm')
+source=("${pkgname}::git+${url}.git#commit=${_commit}")
+sha256sums=('SKIP')
+
+build() {
+	cd "${srcdir}/${pkgname}"
+	make
+}
+
+package() {
+	cd "${srcdir}/${pkgname}"
+	install -Dm755 out/dynamic-cursors.so "${pkgdir}/usr/lib/hyprland-plugins/dynamic-cursors.so"
+	install -Dm644 LICENSE.md "${pkgdir}/usr/share/licenses/${pkgname}/LICENSE.md"
+}

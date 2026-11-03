@@ -44,6 +44,13 @@ Flags: `--check` (report only, never mutates), `--no-chroot-update` (the full ru
 
 Downstream patches are **explicit** `-p1` patches under `patches/<pkg>/`, re-applied after each sync. They are never inferred by diffing against the AUR: for a package that is merely stale, that diff *is* the staleness, and replaying it would revert the update just pulled in. Today: `wlroots0.18` (`werror=false`) and `python-pywal16` (`replaces=('python-pywal')`). A patch that changes metadata but not the version needs the package's `.build-state` deleted, or `build.sh` sees no version change and skips the rebuild.
 
+## Hyprland plugins (rebuild on every Hyprland update)
+
+`hyprglass` and `hypr-dynamic-cursors` are compiled against the exact Hyprland they load into. On every Hyprland
+update: set each `_commit` to the pin its upstream `hyprpm.toml` lists for the new Hyprland commit (`Hyprland
+--version` shows it), bump `pkgver`/`pkgrel`, and rebuild. Until then Hyprland refuses the old `.so` and
+kiro-hyprland-impasto runs without glass and shake-to-find (no crash).
+
 ## Version schemes
 
 - **Date-versioned** (`pkgver=YY.MM`, e.g. `26.05`): auto-bumped on each run, but **only for `local`-class packages**. Used for in-house or static packages where the upstream version is irrelevant.

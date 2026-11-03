@@ -1,5 +1,25 @@
 # Changelog
 
+## 2026.11.03
+
+### What Changed
+- Two Hyprland plugins for the Kiro Hyprland Impasto edition, built here because neither is on the AUR:
+  `hyprglass` (liquid-glass windows) and `hypr-dynamic-cursors` (shake the pointer to find it). They replace the
+  per-user `hyprpm` build that upstream impasto uses.
+
+### Technical Details
+- Both are `local` class with hand-set versions, pinned to an exact upstream commit: hyprglass v1.1.1 (its
+  `hyprpm.toml` pin for Hyprland 0.57.0) and dynamic-cursors main HEAD 2a8d0b7 (no 0.57.0 pin upstream yet, so its
+  first chroot build is also the check that it compiles against 0.57.0).
+- The `.so` goes to `/usr/lib/hyprland-plugins/`, where kiro-hyprland-impasto's `hyprland.lua` loads it with
+  `hl.plugin.load()` when installed. The hyprglass item helper is embedded in `hyprglass.so`, so one file ships.
+- `build.sh` is copied from the root template into the two dirs only (not `copy-files-to-all-folders.sh`).
+
+### Files Modified
+- hyprglass/PKGBUILD, hyprglass/build.sh (new)
+- hypr-dynamic-cursors/PKGBUILD, hypr-dynamic-cursors/build.sh (new)
+- packages.conf, CLAUDE.md
+
 ## 2026.10.25
 
 ### What Changed
