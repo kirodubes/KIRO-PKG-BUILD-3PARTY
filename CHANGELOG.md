@@ -1,5 +1,19 @@
 # Changelog
 
+## 2026.11.04
+
+### What Changed
+- `hyprglass` and `hypr-dynamic-cursors` rebuilt for Hyprland 0.57.1 (pkgrel 2, same source commits). After the
+  Hyprland update, dynamic-cursors refused to load: "version mismatch", built against 0.57.0's commit.
+
+### Technical Details
+- A Hyprland plugin embeds the exact Hyprland commit hash and is refused on any other build, patch releases
+  included. Neither upstream lists a 0.57.1 pin in `hyprpm.toml` yet, so the commits stay; only the rebuild changes.
+
+### Files Modified
+- hyprglass/PKGBUILD
+- hypr-dynamic-cursors/PKGBUILD
+
 ## 2026.11.03
 
 ### What Changed

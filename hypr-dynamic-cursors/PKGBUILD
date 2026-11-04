@@ -5,8 +5,9 @@
 # update. A mismatched build is refused at load time and the session runs without it.
 pkgname=hypr-dynamic-cursors
 pkgver=0.r20261005.2a8d0b7
-_commit=2a8d0b7   # main HEAD 2026-10-05; hyprpm.toml has no Hyprland 0.57.0 pin yet
-pkgrel=1
+_commit=2a8d0b7   # main HEAD 2026-10-05; hyprpm.toml has no 0.57.x pin yet
+# pkgrel 2: rebuilt against Hyprland 0.57.1 (same commit)
+pkgrel=2
 pkgdesc="Hyprland plugin: shake the pointer to find it (used by kiro-hyprland-impasto)"
 arch=('x86_64')
 url="https://github.com/VirtCode/hypr-dynamic-cursors"

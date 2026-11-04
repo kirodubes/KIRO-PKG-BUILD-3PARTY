@@ -6,7 +6,8 @@
 pkgname=hyprglass
 pkgver=1.1.1
 _commit=03a57c4451b4abee38feda2ffb725f55ecc0f2fd   # hyprpm.toml pin for Hyprland 0.57.0
-pkgrel=1
+# pkgrel 2: rebuilt against Hyprland 0.57.1 (no newer pin upstream on 2026-11-04)
+pkgrel=2
 pkgdesc="Liquid-glass effect plugin for Hyprland (used by kiro-hyprland-impasto)"
 arch=('x86_64')
 url="https://github.com/hyprnux/hyprglass"
