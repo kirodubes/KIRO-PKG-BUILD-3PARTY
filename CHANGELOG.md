@@ -1,5 +1,46 @@
 # Changelog
 
+## 2026.11.05
+
+### What Changed
+- New **rebuild watch** (`tools/rebuild-watch.sh`, user timer `kiro-rebuild-watch.timer`). Some of our packages are
+  compiled against Arch libraries and break when Arch updates them: the two Hyprland plugins on every Hyprland
+  release, pamac and chwd on a libalpm bump, calamares on Qt, kpmcore, boost, icu or yaml-cpp, sway-scroll and
+  wlroots0.18 on libdisplay-info or libliftoff, python-pywal16 on a new Python. Users waited for these rebuilds
+  until someone noticed. The watch notices for us: an email plus a desktop notification "Time to build: …" with a
+  **Seen** button, shown again 1 min after login and every 30 min until Seen is clicked. Notify only; the rebuild
+  stays manual.
+
+### Technical Details
+- Arch versions come from a private copy of the pacman databases (`fakeroot pacman -Sy --dbpath`, the
+  `checkupdates` trick) in `~/.cache/kiro-rebuild-watch/db`: no root, the system database is never touched. Each
+  trigger is looked up in `core/` then `extra/`, so a Kiro or third-party repo never shadows Arch's version.
+- `tools/rebuild-triggers.conf` holds the triggers (`trigger | mode | rebuild | what to do`). Modes: `version`
+  (pkgver), `minor` (major.minor) and `soname` (the `lib*.so=` entries in Provides; falls back to `minor` when a
+  package provides no sonames, like kpmcore and qt6-base). A soname alert also records the library change itself
+  (`libalpm.so=15-64 -> libalpm.so=16-64`), because a soname bump can come without a visible version change.
+- State lives in `~/.local/state/kiro-rebuild-watch/` (`seen`, `pending/`, `acked/`). The first run only records the
+  current versions. An alert is mailed once (retried while mail fails) and stays pending until Seen.
+- Each notification runs in its own transient unit (`systemd-run --user --unit=kiro-rebuild-ack-<id>`): the oneshot
+  service would kill a waiting `notify-send --wait` on exit, and the fixed unit name keeps a notification that is
+  still on screen from being shown twice. xfce4-notifyd closes a notification on a click on its body or X without an
+  action, so only the Seen button counts as confirmation. Text is XML-escaped for the notification markup.
+- Mail goes out through `curl` over smtps to Gmail with an app password from
+  `~/.config/kiro-rebuild-watch/mail.conf` (0600, never in the repo). The password reaches curl through a config on
+  a pipe (`-K <(printf …)`), so it never shows in `ps`. A missing or incomplete mail.conf means notification only.
+- `1-build-all-packages.sh` and `copy-files-to-all-folders.sh` skip `tools/`, like `patches/`: it is not a package.
+- Tested in throwaway state folders with a stubbed `systemd-run`: seeding, a faked older Hyprland and libalpm,
+  mail skipped without config, `--ack`, `--status`; then enabled for real and seeded.
+
+### Files Modified
+- tools/rebuild-watch.sh (new)
+- tools/rebuild-triggers.conf (new)
+- tools/systemd/kiro-rebuild-watch.service (new)
+- tools/systemd/kiro-rebuild-watch.timer (new)
+- 1-build-all-packages.sh
+- copy-files-to-all-folders.sh
+- CLAUDE.md
+
 ## 2026.11.04
 
 ### What Changed

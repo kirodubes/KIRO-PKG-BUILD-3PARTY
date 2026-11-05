@@ -51,6 +51,17 @@ update: set each `_commit` to the pin its upstream `hyprpm.toml` lists for the n
 --version` shows it), bump `pkgver`/`pkgrel`, and rebuild. Until then Hyprland refuses the old `.so` and
 kiro-hyprland-impasto runs without glass and shake-to-find (no crash).
 
+## Rebuild watch (`tools/`)
+
+`tools/rebuild-watch.sh` (user timer `kiro-rebuild-watch.timer`, units in `tools/systemd/`, symlinked into
+`~/.config/systemd/user/`) emails Erik and shows a notification with a **Seen** button when Arch updates a
+package that breaks one we built. It nags 1 min after login and every 30 min until Seen. Triggers are data in
+`tools/rebuild-triggers.conf` (`trigger | version|minor|soname | rebuild | what to do`): when a new package links
+against an Arch library that bumps sonames (or is a Hyprland plugin), add its trigger line there. State:
+`~/.local/state/kiro-rebuild-watch/`; mail settings: `~/.config/kiro-rebuild-watch/mail.conf` (local only).
+`--status` lists pending alerts, `--ack <id>` clears one by hand, `--test` sends a fake one. `tools/` is not a
+package dir: the build scripts skip it like `patches/`.
+
 ## Version schemes
 
 - **Date-versioned** (`pkgver=YY.MM`, e.g. `26.05`): auto-bumped on each run, but **only for `local`-class packages**. Used for in-house or static packages where the upstream version is irrelevant.

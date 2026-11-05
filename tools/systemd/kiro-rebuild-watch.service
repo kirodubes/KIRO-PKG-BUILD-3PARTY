@@ -1,0 +1,7 @@
+[Unit]
+Description=Check Arch updates that need a Kiro package rebuild
+After=graphical-session.target
+
+[Service]
+Type=oneshot
+ExecStart=%h/KIRO-PKG-BUILD-3PARTY/tools/rebuild-watch.sh

@@ -1,0 +1,9 @@
+[Unit]
+Description=Rebuild watch: 1 min after login, then every 30 min (check + nag until Seen)
+
+[Timer]
+OnStartupSec=1min
+OnUnitActiveSec=30min
+
+[Install]
+WantedBy=timers.target

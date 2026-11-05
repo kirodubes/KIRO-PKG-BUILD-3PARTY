@@ -144,7 +144,7 @@ build_all_packages() {
     local dirs total count name rc
 
     mapfile -t dirs < <(find "${SCRIPT_DIR}" -maxdepth 1 -mindepth 1 -type d \
-        -not -name ".*" -not -name "patches" | sort)
+        -not -name ".*" -not -name "patches" -not -name "tools" | sort)
     total="${#dirs[@]}"
     count=0
 
