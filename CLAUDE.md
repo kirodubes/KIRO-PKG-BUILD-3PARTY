@@ -42,7 +42,7 @@ Flags: `--check` (report only, never mutates), `--no-chroot-update` (the full ru
 
 ## Kiro local deltas
 
-Downstream patches are **explicit** `-p1` patches under `patches/<pkg>/`, re-applied after each sync. They are never inferred by diffing against the AUR: for a package that is merely stale, that diff *is* the staleness, and replaying it would revert the update just pulled in. Today: `wlroots0.18` (`werror=false`) and `python-pywal16` (`replaces=('python-pywal')`). A patch that changes metadata but not the version needs the package's `.build-state` deleted, or `build.sh` sees no version change and skips the rebuild.
+Downstream patches are **explicit** `-p1` patches under `patches/<pkg>/`, re-applied after each sync. They are never inferred by diffing against the AUR: for a package that is merely stale, that diff *is* the staleness, and replaying it would revert the update just pulled in. Today: `wlroots0.18` (`werror=false`), `python-pywal16` (`replaces=('python-pywal')`) and `caelestia-shell` (`quickshell` from extra instead of `quickshell-git`). A patch that changes metadata but not the version needs the package's `.build-state` deleted, or `build.sh` sees no version change and skips the rebuild.
 
 ## Hyprland plugins (rebuild on every Hyprland update)
 

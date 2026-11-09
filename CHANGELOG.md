@@ -1,5 +1,34 @@
 # Changelog
 
+## 2026.11.09
+
+### What Changed
+- Four AUR packages for the coming KiroTux Hyprland Caelestia edition: `caelestia-shell` 2.5.0 (the desktop shell),
+  `caelestia-cli` 1.1.3 (its control CLI), `qt6-m3shapes-git` (Material 3 shapes library the shell links) and
+  `ttf-rubik-vf` (its UI font). None is in extra, chaotic-aur or cachyos (checked 2026-11-09).
+- `caelestia-shell` carries a Kiro patch: it depends on `quickshell>=0.3.2` from extra instead of `quickshell-git`.
+- Rebuild watch: a Qt minor bump now also asks for `qt6-m3shapes-git` + `caelestia-shell`; a libqalculate soname bump
+  asks for `caelestia-shell`.
+- Not built yet (needs the gpg passphrase and sudo). Build order: qt6-m3shapes-git, ttf-rubik-vf, caelestia-cli,
+  caelestia-shell. `1-build-all-packages.sh` builds alphabetically (caelestia-* first), so its first run fails on
+  caelestia-shell for want of the other two, like blueberry; build them one by one in the order above instead.
+
+### Technical Details
+- Classes: `caelestia-cli` and `caelestia-shell` are release tarballs with sha256 pins, `ttf-rubik-vf` pins a
+  `_commit` for raw font files: all `aur-fixed`. `qt6-m3shapes-git` is a rolling `git+` source: `aur-vcs`, upstream
+  `https://github.com/soramanew/m3shapes.git` (HEAD).
+- Why the quickshell patch is safe: v2.5.0's `flake.lock` pins quickshell `2d3b3e9` (2026-08-29), and
+  `git merge-base --is-ancestor 2d3b3e9 v0.3.2` is true (v0.3.2 tagged 2026-10-08, the version extra ships). The
+  `-git` dependency would have conflicted with `quickshell` on the DMS/impasto editions. Recheck on every bump.
+- `--check` reports `caelestia-shell: AUR tree differs — would sync`, as it does for python-pywal16 and wlroots0.18:
+  it diffs the raw AUR PKGBUILD against the patched one. A real sync replays the patch and ends in the same file.
+- No `.build-state` seeded; no older artifacts in nemesis_repo.
+
+### Files Modified
+- `caelestia-cli/`, `caelestia-shell/`, `qt6-m3shapes-git/`, `ttf-rubik-vf/` (new: PKGBUILD, .SRCINFO, build.sh, AUR extras)
+- `patches/caelestia-shell/0001-kiro-quickshell-from-extra.patch` (new)
+- `packages.conf`, `tools/rebuild-triggers.conf`, `CHANGELOG.md`
+
 ## 2026.11.05
 
 ### What Changed

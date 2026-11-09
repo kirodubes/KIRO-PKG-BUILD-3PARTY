@@ -1,0 +1,22 @@
+From: Erik Dubois <erik.dubois@gmail.com>
+Subject: [PATCH] Kiro: depend on quickshell from extra, not quickshell-git
+
+caelestia-shell v2.5.0 pins quickshell commit 2d3b3e9 (2026-08-29) in its
+flake.lock, and that commit is an ancestor of the v0.3.2 tag (2026-10-08)
+that Arch extra ships. So extra's quickshell carries everything v2.5.0 was
+built against, and the KiroTux Quickshell editions keep one quickshell
+package instead of a conflicting -git build. Recheck on every bump.
+
+Local Kiro delta, not upstream AUR.
+---
+--- a/PKGBUILD	2026-11-09 09:12:56.440198953 +0100
++++ b/PKGBUILD	2026-11-09 09:12:56.440851900 +0100
+@@ -11,7 +11,7 @@
+ license=('GPL-3.0-only')
+ depends=(
+     'caelestia-cli'
+-    'quickshell-git'
++    'quickshell>=0.3.2'
+     'glibc'
+     'gcc-libs'
+ 
