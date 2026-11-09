@@ -95,3 +95,5 @@ bash 1-build-all-packages.sh
 # Propagate shared build.sh to all package dirs
 bash copy-files-to-all-folders.sh
 ```
+
+- An AUR `.gitignore` of `*` (e.g. `ttf-rubik-vf`) hides `build.sh` and `.build-state` from `git add`: after adding such a package, check `git ls-files <pkg>` lists `build.sh`, and stage both with `git add -f`.
