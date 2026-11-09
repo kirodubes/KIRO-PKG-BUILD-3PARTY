@@ -24,8 +24,14 @@
 - `--check` reports `caelestia-shell: AUR tree differs — would sync`, as it does for python-pywal16 and wlroots0.18:
   it diffs the raw AUR PKGBUILD against the patched one. A real sync replays the patch and ends in the same file.
 - No `.build-state` seeded; no older artifacts in nemesis_repo.
+- `hyprglass` and `hypr-dynamic-cursors` pkgrel 2 → 3: the 13:57 rebuild against Hyprland 0.57.2 (commit `11cbc6c`)
+  kept the old version, so installed systems never saw it and kept the 0.57.1 `.so` (picard: dynamic-cursors off).
+  Neither upstream `hyprpm.toml` has a 0.57.2 pin yet; the current `_commit`s build clean against it.
+- New hand-written flow `~/.bin/flow-hyprland-plugins`: builds both plugins (one chroot update), then runs this
+  repo's `up.sh` and nemesis_repo's `up.sh` once. CLAUDE.md's Hyprland plugins section now names it.
 
 ### Files Modified
+- `hyprglass/PKGBUILD`, `hypr-dynamic-cursors/PKGBUILD` (pkgrel 3), `CLAUDE.md`
 - `caelestia-cli/`, `caelestia-shell/`, `qt6-m3shapes-git/`, `ttf-rubik-vf/` (new: PKGBUILD, .SRCINFO, build.sh, AUR extras)
 - `patches/caelestia-shell/0001-kiro-quickshell-from-extra.patch` (new)
 - `packages.conf`, `tools/rebuild-triggers.conf`, `CHANGELOG.md`

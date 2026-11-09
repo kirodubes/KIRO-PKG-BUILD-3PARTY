@@ -48,7 +48,9 @@ Downstream patches are **explicit** `-p1` patches under `patches/<pkg>/`, re-app
 
 `hyprglass` and `hypr-dynamic-cursors` are compiled against the exact Hyprland they load into. On every Hyprland
 update: set each `_commit` to the pin its upstream `hyprpm.toml` lists for the new Hyprland commit (`Hyprland
---version` shows it), bump `pkgver`/`pkgrel`, and rebuild. Until then Hyprland refuses the old `.so` and
+--version` shows it), bump `pkgver`/`pkgrel` (a rebuild at the same version is skipped and never reaches installed
+systems), and rebuild both with `flow-hyprland-plugins` (`~/.bin`, hand-written: builds both, then pushes this repo
+and nemesis_repo once). Until then Hyprland refuses the old `.so` and
 kiro-hyprland-impasto runs without glass and shake-to-find (no crash).
 
 ## Rebuild watch (`tools/`)
