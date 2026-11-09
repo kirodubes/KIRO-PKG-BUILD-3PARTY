@@ -9,9 +9,10 @@
 - `caelestia-shell` carries a Kiro patch: it depends on `quickshell>=0.3.2` from extra instead of `quickshell-git`.
 - Rebuild watch: a Qt minor bump now also asks for `qt6-m3shapes-git` + `caelestia-shell`; a libqalculate soname bump
   asks for `caelestia-shell`.
-- Not built yet (needs the gpg passphrase and sudo). Build order: qt6-m3shapes-git, ttf-rubik-vf, caelestia-cli,
-  caelestia-shell. `1-build-all-packages.sh` builds alphabetically (caelestia-* first), so its first run fails on
-  caelestia-shell for want of the other two, like blueberry; build them one by one in the order above instead.
+- Not built yet (needs the gpg passphrase and sudo). The build chroot reads nemesis_repo from GitHub Pages and
+  `build.sh` doesn't refresh the repo db, so they build in two layers with a publish in between: (1) qt6-m3shapes-git,
+  ttf-rubik-vf, caelestia-cli, then `~/EDU/nemesis_repo/up.sh` and wait for Pages; (2) caelestia-shell (needs all three
+  as depends), then publish again. `1-build-all-packages.sh` publishes only at the end, so one run can't do it.
 
 ### Technical Details
 - Classes: `caelestia-cli` and `caelestia-shell` are release tarballs with sha256 pins, `ttf-rubik-vf` pins a
