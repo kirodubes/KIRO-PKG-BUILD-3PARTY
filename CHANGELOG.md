@@ -27,8 +27,10 @@
 - Tested with real pacman transactions as root in a libvirt VM (KiroTux install, Hyprland 0.57.2): install with
   matching plugins (hook silent), commit blanked in both `.so` then `pacman -S hyprland` (both rebuilt, 41 s for the
   whole transaction on 5 cores, commit back in both files, no temp dir left), broken source (warning, transaction
-  rc 0, old `.so` byte-identical), package reinstall restores it. Not tested: loading the on-box build into a running
-  impasto session (no impasto box was up); the build commands are the same as in `build()`.
+  rc 0, old `.so` byte-identical), package reinstall restores it.
+- Tested on picard (Hyprland Impasto session running, 8 cores): upgrade 3 → 4 with the hook silent, commit blanked
+  then `pacman -S hyprland` rebuilt both in 37 s, and `hyprctl plugin unload` + `load` of both on-box builds answered
+  `ok` in the running session, which kept running.
 - Known and accepted: after an on-box rebuild `pacman -Qkk` reports the `.so` as modified until the next package
   update.
 
