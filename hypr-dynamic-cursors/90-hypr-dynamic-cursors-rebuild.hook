@@ -1,0 +1,11 @@
+[Trigger]
+Type = Package
+Operation = Install
+Operation = Upgrade
+Target = hyprland
+Target = hypr-dynamic-cursors
+
+[Action]
+Description = Checking hypr-dynamic-cursors against the installed Hyprland...
+When = PostTransaction
+Exec = /usr/share/libalpm/scripts/hypr-dynamic-cursors-rebuild

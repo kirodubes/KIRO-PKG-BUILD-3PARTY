@@ -6,16 +6,21 @@
 pkgname=hypr-dynamic-cursors
 pkgver=0.r20261005.2a8d0b7
 _commit=2a8d0b7   # main HEAD 2026-10-05; hyprpm.toml has no 0.57.x pin yet
-# pkgrel 2: rebuilt against Hyprland 0.57.1 (same commit)
-pkgrel=3
+# pkgrel 4: ships its source and a pacman hook that rebuilds the plugin on the user's system
+# when Hyprland is updated before this package is (see CLAUDE.md, Hyprland plugins)
+pkgrel=4
 pkgdesc="Hyprland plugin: shake the pointer to find it (used by kiro-hyprland-impasto)"
 arch=('x86_64')
 url="https://github.com/VirtCode/hypr-dynamic-cursors"
 license=('MIT')
-depends=('hyprland')
+depends=('hyprland' 'gcc' 'make' 'pkgconf')
 makedepends=('git' 'pkgconf' 'pixman' 'libdrm')
-source=("${pkgname}::git+${url}.git#commit=${_commit}")
-sha256sums=('SKIP')
+source=("${pkgname}::git+${url}.git#commit=${_commit}"
+        "90-hypr-dynamic-cursors-rebuild.hook"
+        "hypr-dynamic-cursors-rebuild.sh")
+sha256sums=('SKIP'
+            '366d99faa5d2a64ffc89650e9e389cb1b22c76181070c644e281a449e9246f34'
+            '770dd4852698e41bbcc77fa2765d12025bc299b133a0b0bcb9ab04f42c3d8251')
 
 build() {
 	cd "${srcdir}/${pkgname}"
@@ -26,4 +31,10 @@ package() {
 	cd "${srcdir}/${pkgname}"
 	install -Dm755 out/dynamic-cursors.so "${pkgdir}/usr/lib/hyprland-plugins/dynamic-cursors.so"
 	install -Dm644 LICENSE.md "${pkgdir}/usr/share/licenses/${pkgname}/LICENSE.md"
+
+	# For the pacman hook: the source it compiles when Hyprland moves ahead of this package.
+	install -d "${pkgdir}/usr/src/${pkgname}"
+	git archive HEAD | tar -x -C "${pkgdir}/usr/src/${pkgname}"
+	install -Dm644 "${srcdir}/90-hypr-dynamic-cursors-rebuild.hook" -t "${pkgdir}/usr/share/libalpm/hooks"
+	install -Dm755 "${srcdir}/hypr-dynamic-cursors-rebuild.sh" "${pkgdir}/usr/share/libalpm/scripts/${pkgname}-rebuild"
 }

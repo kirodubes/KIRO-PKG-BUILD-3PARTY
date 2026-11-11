@@ -53,6 +53,17 @@ systems), and rebuild both with `flow-hyprland-plugins` (`~/.bin`, hand-written:
 and nemesis_repo once). Until then Hyprland refuses the old `.so` and
 kiro-hyprland-impasto runs without glass and shake-to-find (no crash).
 
+**On-box rebuild hook (since pkgrel 4, 2026-11-11).** Each plugin package also ships its source in
+`/usr/src/<pkgname>/`, a pacman hook (`90-<pkgname>-rebuild.hook`, fires on install/upgrade of `hyprland` or of the
+plugin) and `/usr/share/libalpm/scripts/<pkgname>-rebuild`. When the installed `.so` does not hold the commit from
+`/usr/include/hyprland/src/version.h`, the script compiles the shipped source as `nobody` in a temp dir and installs
+the result (stripped) over the `.so`; log in `/var/log/kiro-hyprland-plugins/`. It always exits 0. This only covers
+the days between an Arch Hyprland update and our rebuild, and only while the pinned `_commit` still compiles
+against the new Hyprland. **Our rebuild stays mandatory**: for the ISO, and for a bump that needs a new `_commit`.
+After an on-box rebuild `pacman -Qkk` reports the `.so` as modified until the next package update; that is expected.
+Editing a `*-rebuild.sh` or `.hook` means updating its `sha256sums` line in the PKGBUILD. The two scripts are the
+same body with different variables at the top: change both.
+
 ## Rebuild watch (`tools/`)
 
 `tools/rebuild-watch.sh` (user timer `kiro-rebuild-watch.timer`, units in `tools/systemd/`, symlinked into

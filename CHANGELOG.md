@@ -1,5 +1,43 @@
 # Changelog
 
+## 2026.11.11
+
+### What Changed
+- `hyprglass` and `hypr-dynamic-cursors` (pkgrel 4) now rebuild themselves on the user's system. When Arch updates
+  Hyprland before our rebuilt plugins are out, a pacman hook compiles the plugin against the new Hyprland during
+  the same update, so the glass effect and shake-to-find keep working after the next login instead of staying off
+  until our packages arrive.
+- Both packages now depend on `gcc`, `make` and `pkgconf` (already on the impasto ISO).
+- Our own rebuild on every Hyprland update stays as it was: the ISO needs it, and so does any Hyprland release the
+  pinned plugin source no longer compiles against.
+
+### Technical Details
+- Each package ships its source at `_commit` in `/usr/src/<pkgname>/` (`git archive HEAD`, no `.git`), a hook
+  `90-<pkgname>-rebuild.hook` (`Type = Package`, Install + Upgrade, targets `hyprland` and the plugin itself,
+  `PostTransaction`) and `/usr/share/libalpm/scripts/<pkgname>-rebuild`.
+- Stale test: the `.so` holds the Hyprland commit as plain text, so the script greps it for `GIT_COMMIT_HASH` from
+  `/usr/include/hyprland/src/version.h` (shipped by the `hyprland` package). Match: silent exit, which is the case
+  whenever the rebuilt package comes in the same transaction, and during ISO builds.
+- Mismatch: copy the source to a `mktemp -d`, `make` as `nobody` through `runuser`, check the new `.so` holds the
+  commit, `install -s -m755` over the packaged file (new inode, so a running session keeps its loaded copy). Output
+  goes to `/var/log/kiro-hyprland-plugins/<pkgname>.log`. Missing compiler or failed build: one or two plain lines,
+  old `.so` untouched. The script has no `set -e` and always exits 0, so it cannot fail a pacman transaction.
+- hyprglass's script gets `HYPRGLASS_VERSION` from `pkgver` (substituted in `package()`), so `hyprctl plugin list`
+  shows the same version as the packaged build and the Makefile never looks for `.git`.
+- Tested with real pacman transactions as root in a libvirt VM (KiroTux install, Hyprland 0.57.2): install with
+  matching plugins (hook silent), commit blanked in both `.so` then `pacman -S hyprland` (both rebuilt, 41 s for the
+  whole transaction on 5 cores, commit back in both files, no temp dir left), broken source (warning, transaction
+  rc 0, old `.so` byte-identical), package reinstall restores it. Not tested: loading the on-box build into a running
+  impasto session (no impasto box was up); the build commands are the same as in `build()`.
+- Known and accepted: after an on-box rebuild `pacman -Qkk` reports the `.so` as modified until the next package
+  update.
+
+### Files Modified
+- `hyprglass/PKGBUILD`, `hypr-dynamic-cursors/PKGBUILD`
+- `hyprglass/90-hyprglass-rebuild.hook`, `hyprglass/hyprglass-rebuild.sh` (new)
+- `hypr-dynamic-cursors/90-hypr-dynamic-cursors-rebuild.hook`, `hypr-dynamic-cursors/hypr-dynamic-cursors-rebuild.sh` (new)
+- `CLAUDE.md`, `CHANGELOG.md`
+
 ## 2026.11.09
 
 ### What Changed

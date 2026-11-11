@@ -6,16 +6,21 @@
 pkgname=hyprglass
 pkgver=1.1.1
 _commit=03a57c4451b4abee38feda2ffb725f55ecc0f2fd   # hyprpm.toml pin for Hyprland 0.57.0
-# pkgrel 2: rebuilt against Hyprland 0.57.1 (no newer pin upstream on 2026-11-04)
-pkgrel=3
+# pkgrel 4: ships its source and a pacman hook that rebuilds the plugin on the user's system
+# when Hyprland is updated before this package is (see CLAUDE.md, Hyprland plugins)
+pkgrel=4
 pkgdesc="Liquid-glass effect plugin for Hyprland (used by kiro-hyprland-impasto)"
 arch=('x86_64')
 url="https://github.com/hyprnux/hyprglass"
 license=('BSD-3-Clause')
-depends=('hyprland')
+depends=('hyprland' 'gcc' 'make' 'pkgconf')
 makedepends=('git' 'pkgconf' 'wayland' 'pixman' 'libdrm')
-source=("${pkgname}::git+${url}.git#commit=${_commit}")
-sha256sums=('SKIP')
+source=("${pkgname}::git+${url}.git#commit=${_commit}"
+        "90-hyprglass-rebuild.hook"
+        "hyprglass-rebuild.sh")
+sha256sums=('SKIP'
+            '238c51db97219a894e545aa2fa322b3f0ea063b19fc41cf4969f5391eeb194e3'
+            '3fb41ce7e252fca0441b37acfb31420e2f1a6dbd7d69a0515136f6d373388423')
 
 build() {
 	cd "${srcdir}/${pkgname}"
@@ -26,4 +31,11 @@ package() {
 	cd "${srcdir}/${pkgname}"
 	install -Dm755 hyprglass.so "${pkgdir}/usr/lib/hyprland-plugins/hyprglass.so"
 	install -Dm644 LICENSE "${pkgdir}/usr/share/licenses/${pkgname}/LICENSE"
+
+	# For the pacman hook: the source it compiles when Hyprland moves ahead of this package.
+	install -d "${pkgdir}/usr/src/${pkgname}"
+	git archive HEAD | tar -x -C "${pkgdir}/usr/src/${pkgname}"
+	install -Dm644 "${srcdir}/90-hyprglass-rebuild.hook" -t "${pkgdir}/usr/share/libalpm/hooks"
+	install -Dm755 "${srcdir}/hyprglass-rebuild.sh" "${pkgdir}/usr/share/libalpm/scripts/${pkgname}-rebuild"
+	sed -i "s/@PKGVER@/${pkgver}/" "${pkgdir}/usr/share/libalpm/scripts/${pkgname}-rebuild"
 }
