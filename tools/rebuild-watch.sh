@@ -16,6 +16,9 @@ set -euo pipefail
 #     notification with a Seen button.
 #   - A pending alert is shown again on every run (1 min after login,
 #     then every 30 min) until Seen is clicked.
+#   - Also check every project in upstream-watch.conf: when its latest
+#     GitHub release differs from the tag in our UPSTREAM file, raise
+#     the same alert (once per release) so a vendored bump is not missed.
 #   - Changes nothing in any package; the rebuild stays manual.
 #
 #   Why: users wait for these rebuilds while Erik is away from the PC,
@@ -102,6 +105,7 @@ trap 'on_error "$LINENO" "$BASH_COMMAND"' ERR
 #####################################################################
 SELF="${SCRIPT_DIR}/$(basename -- "${BASH_SOURCE[0]}")"
 CONF="${SCRIPT_DIR}/rebuild-triggers.conf"
+UPSTREAM_CONF="${SCRIPT_DIR}/upstream-watch.conf"
 STATE_DIR="${XDG_STATE_HOME:-$HOME/.local/state}/kiro-rebuild-watch"
 SEEN="${STATE_DIR}/seen"
 PENDING="${STATE_DIR}/pending"
@@ -159,11 +163,25 @@ fingerprint() {
     esac
 }
 
+alert_id() {
+    tr -c 'A-Za-z0-9._-' '-' <<<"${1}-${2}" | sed 's/-*$//'
+}
+
+# The opening words of the mail and the notification, per alert source.
+source_words() {
+    if [[ "$(alert_get "$1" source)" == "upstream" ]]; then
+        echo "Upstream released"
+    else
+        echo "Arch updated"
+    fi
+}
+
 create_alert() {
-    local trigger="$1" old="$2" new="$3" rebuild="$4" hint="$5" change="${6:-}" id
-    id="$(tr -c 'A-Za-z0-9._-' '-' <<<"${trigger}-${new}" | sed 's/-*$//')"
+    local trigger="$1" old="$2" new="$3" rebuild="$4" hint="$5" change="${6:-}" source="${7:-arch}" id
+    id="$(alert_id "$trigger" "$new")"
     mkdir -p "$PENDING"
     {
+        echo "source=${source}"
         echo "trigger=${trigger}"
         echo "old=${old}"
         echo "new=${new}"
@@ -217,6 +235,92 @@ check_triggers() {
     return 0
 }
 
+check_release() {
+    local name="$1" file="$2" rebuild="$3" hint="$4" repo vendored latest id
+    file="${file/#\~/$HOME}"
+    if [[ ! -r "$file" ]]; then
+        log_warn "${name}: ${file} not found -- check upstream-watch.conf"
+        return 0
+    fi
+    repo="$(grep -m1 -oP 'github\.com/\K[^/\s]+/[^/\s]+' "$file" | sed 's/\.git$//' || true)"
+    vendored="$(sed -n 's/^tag: *//p' "$file" | head -n1)"
+    if [[ -z "$repo" || -z "$vendored" ]]; then
+        log_warn "${name}: no GitHub URL or tag line in ${file}"
+        return 0
+    fi
+    # Unauthenticated API: 60 calls an hour, plenty for a 30-minute timer.
+    latest="$(curl --silent --fail --max-time 30 "https://api.github.com/repos/${repo}/releases/latest" \
+        | python3 -c 'import json, sys; print(json.load(sys.stdin).get("tag_name", ""))' 2>/dev/null || true)"
+    if [[ -z "$latest" ]]; then
+        log_warn "${name}: GitHub gave no latest release for ${repo} -- trying again next run"
+        return 0
+    fi
+    if [[ "$latest" == "$vendored" ]]; then
+        echo "${name} ${vendored}: up to date"
+        return 0
+    fi
+    id="$(alert_id "$name" "$latest")"
+    if [[ -f "${PENDING}/${id}" || -f "${ACKED}/${id}" ]]; then
+        echo "${name} ${latest}: already alerted (we vendor ${vendored})"
+        return 0
+    fi
+    create_alert "$name" "$vendored" "$latest" "$rebuild" "$hint" \
+        "https://github.com/${repo}/releases/tag/${latest}" upstream
+}
+
+# The commit_pins of a hyprpm.toml, one "hyprland-commit plugin-commit # comment" per line, in file order
+# (newest last), so the last line names the newest pin.
+hyprpm_pins() {
+    grep -oP '\[\s*"\K[0-9a-f]{40}"\s*,\s*"[0-9a-f]{40}"\s*\],?\s*(#.*)?' \
+        | sed -E 's/"\s*,\s*"/ /; s/"\s*\],?\s*/ /; s/ +$//'
+}
+
+check_pins() {
+    local name="$1" repo="$2" rebuild="$3" hint="$4" saved="${STATE_DIR}/pins/$1" now added old_label new_label id
+    now="$(curl --silent --fail --max-time 30 "https://raw.githubusercontent.com/${repo}/HEAD/hyprpm.toml" \
+        | hyprpm_pins || true)"
+    if [[ -z "$now" ]]; then
+        log_warn "${name}: no commit_pins in ${repo}'s hyprpm.toml -- trying again next run"
+        return 0
+    fi
+    mkdir -p "${STATE_DIR}/pins"
+    if [[ ! -f "$saved" ]]; then
+        printf '%s\n' "$now" >"$saved"
+        echo "${name}: $(wc -l <"$saved") pins recorded"
+        return 0
+    fi
+    # Compare on the two commits only, so a reworded comment is not a change.
+    added="$(comm -13 <(cut -d' ' -f1,2 "$saved" | sort) <(cut -d' ' -f1,2 <<<"$now" | sort))"
+    if [[ -z "$added" ]]; then
+        echo "${name}: pins unchanged"
+        return 0
+    fi
+    old_label="$(tail -n1 "$saved" | sed -n 's/.*# *//p')"
+    new_label="$(grep -F -- "$(tail -n1 <<<"$added")" <<<"$now" | sed -n 's/.*# *//p')"
+    id="$(alert_id "$name" "$(tail -n1 <<<"$added" | cut -c42-48)")"
+    create_alert "$name" "${old_label:-last pin}" "${new_label:-new pin}" "$rebuild" "$hint" \
+        "new pin(s): $(tr '\n' ';' <<<"$added" | sed 's/;$//') -- https://github.com/${repo}/blob/HEAD/hyprpm.toml" upstream
+    printf '%s\n' "$now" >"$saved"
+}
+
+check_upstreams() {
+    local line name kind src rebuild hint
+    [[ -f "$UPSTREAM_CONF" ]] || return 0
+    log_section "Checking $(grep -cvE '^[[:space:]]*(#|$)' "$UPSTREAM_CONF") upstreams"
+    while IFS= read -r line; do
+        [[ "$line" =~ ^[[:space:]]*(#|$) ]] && continue
+        IFS='|' read -r name kind src rebuild hint <<<"$line"
+        name="$(trim "$name")" kind="$(trim "$kind")" src="$(trim "$src")"
+        rebuild="$(trim "$rebuild")" hint="$(trim "$hint")"
+        case "$kind" in
+            release) check_release "$name" "$src" "$rebuild" "$hint" ;;
+            pins) check_pins "$name" "$src" "$rebuild" "$hint" ;;
+            *) log_warn "${name}: unknown kind '${kind}' in upstream-watch.conf" ;;
+        esac
+    done <"$UPSTREAM_CONF"
+    return 0
+}
+
 send_mail() {
     local file="$1" trigger old new rebuild hint change subject msg
     trigger="$(alert_get "$file" trigger)" old="$(alert_get "$file" old)" new="$(alert_get "$file" new)"
@@ -238,8 +342,12 @@ send_mail() {
         echo "Date: $(date -R)"
         echo "Content-Type: text/plain; charset=UTF-8"
         echo
-        echo "Arch updated ${trigger}: ${old} -> ${new}"
-        [[ -n "$change" ]] && echo "Library change: ${change}"
+        echo "$(source_words "$file") ${trigger}: ${old} -> ${new}"
+        if [[ "$(alert_get "$file" source)" == "upstream" ]]; then
+            echo "Details: ${change}"
+        elif [[ -n "$change" ]]; then
+            echo "Library change: ${change}"
+        fi
         echo
         echo "Time to rebuild: ${rebuild}"
         echo
@@ -299,7 +407,7 @@ xml_escape() {
 show_notification() {
     local id="$1" file="${PENDING}/$1" answer body
     [[ -f "$file" ]] || return 0
-    body="Arch updated $(alert_get "$file" trigger) $(alert_get "$file" old) -> $(alert_get "$file" new)."
+    body="$(source_words "$file") $(alert_get "$file" trigger) $(alert_get "$file" old) -> $(alert_get "$file" new)."
     [[ -n "$(alert_get "$file" change)" ]] && body+=$'\n'"$(alert_get "$file" change)"
     body+=$'\n'"$(alert_get "$file" hint)"
     answer="$(notify-send --app-name="Kiro rebuild watch" --icon=software-update-urgent \
@@ -365,6 +473,7 @@ main() {
             fi
             sync_db
             check_triggers
+            check_upstreams
             ;;
         *)
             log_error "Unknown option: $1"

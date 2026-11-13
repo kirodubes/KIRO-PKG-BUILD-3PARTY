@@ -1,5 +1,37 @@
 # Changelog
 
+## 2026.11.13
+
+### What Changed
+- The rebuild watch also tells Erik when a project we vendor into a package releases a new version. impasto v0.6.1
+  came out unnoticed (found by chance in a video); a new impasto release now sends the same mail and Seen
+  notification as an Arch update, with a link to the release notes.
+- It also watches the two Hyprland plugins upstream: when hyprglass or hypr-dynamic-cursors adds a pin to its
+  `hyprpm.toml` (a plugin commit for a new Hyprland), Erik gets the same mail + Seen alert naming the new pin.
+  The existing `hyprland` trigger covers the Arch side; this covers "the plugin can now be rebuilt".
+
+### Technical Details
+- New data file `tools/upstream-watch.conf` (`name | kind | source | rebuild | what to do`). Kind `release`
+  (impasto → kiro-hyprland-impasto): `check_release()` reads the GitHub URL and `tag:` line from the vendoring
+  repo's `UPSTREAM` file and compares with `releases/latest` (unauthenticated API; a failed call only warns).
+  Kind `pins` (hyprglass, hypr-dynamic-cursors): `check_pins()` fetches `hyprpm.toml` from the default branch,
+  keeps its `commit_pins` in file order in `~/.local/state/kiro-rebuild-watch/pins/<name>` (first run records
+  silently), compares on the two commits only (a reworded comment is no change) and alerts on added pins, labelled
+  with the previous and new newest pin comments.
+- One alert per release: the id is `<name>-<tag>`, skipped when already in `pending/` or `acked/`. The bump itself
+  ends it, since `UPSTREAM` then names the new tag. Pins alert once per change (the saved list is updated).
+- Checked HQ first: no existing upstream watch for the plugins (only the Arch `hyprland` trigger and the on-box
+  rebuild hook), so nothing is doubled.
+- Alerts carry `source=arch|upstream` (old pending files default to arch); mail and notification open with
+  "Upstream released" and give the release-notes URL instead of a library change.
+- Tested in an isolated copy (own state dir, no mail, no notification): real impasto "up to date", a fake v0.6.0
+  entry alerted once and was skipped on the second run; pins recorded 14 + 40, a removed hyprglass pin came back
+  as one alert ("hyprland 0.56.2 -> hyprglass v0.11.0" -> "hyprland 0.57.0 -> hyprglass v1.1.1"), then quiet.
+  `bash -n` + `shellcheck -S warning` clean.
+
+### Files Modified
+- `tools/rebuild-watch.sh`, `tools/upstream-watch.conf` (new), `CLAUDE.md`, `CHANGELOG.md`
+
 ## 2026.11.11
 
 ### What Changed

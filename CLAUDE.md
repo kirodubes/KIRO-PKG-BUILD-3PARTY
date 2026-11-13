@@ -72,6 +72,9 @@ package that breaks one we built. It nags 1 min after login and every 30 min unt
 `tools/rebuild-triggers.conf` (`trigger | version|minor|soname | rebuild | what to do`): when a new package links
 against an Arch library that bumps sonames (or is a Hyprland plugin), add its trigger line there. State:
 `~/.local/state/kiro-rebuild-watch/`; mail settings: `~/.config/kiro-rebuild-watch/mail.conf` (local only).
+It also checks `tools/upstream-watch.conf` (`name | kind | source | rebuild | what to do`): kind `release` alerts
+when a vendored project's latest GitHub release differs from the `tag:` in that repo's `UPSTREAM` file (impasto);
+kind `pins` alerts when a Hyprland plugin adds a pin to its upstream `hyprpm.toml` (hyprglass, hypr-dynamic-cursors).
 `--status` lists pending alerts, `--ack <id>` clears one by hand, `--test` sends a fake one. `tools/` is not a
 package dir: the build scripts skip it like `patches/`.
 
