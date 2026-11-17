@@ -7,6 +7,7 @@
   without this rebuild the glass effect in kiro-hyprland-impasto depends on the on-box hook.
 - sway-scroll removed: chaotic-aur builds it now (request #4009), so Kiro users get it from there and we no
   longer rebuild it on every libdisplay-info / libliftoff soname bump.
+- wlroots0.18 removed too: sway-scroll was its only user, and EOL wlroots 0.18 needed a Kiro patch to build at all.
 
 ### Technical Details
 - `_commit` set to `56714382` (tag v1.2.0), the `hyprpm.toml` pin for Hyprland commit `11cbc6c5` (v0.57.2);
@@ -15,12 +16,16 @@
 - sway-scroll: package dir deleted, its `packages.conf` class dropped, and the two rebuild-watch triggers
   (libdisplay-info, libliftoff) now name only wlroots0.18. chaotic-aur's sway-scroll (1.12.21-1, same version
   as ours) vendors its own wlroots, so nothing we ship needs wlroots0.18 for it any more.
+- wlroots0.18: package dir, `patches/wlroots0.18/` (`-D werror=false`), its `packages.conf` class and note, both
+  rebuild-watch trigger lines and the CLAUDE.md local-delta mention all removed.
 
 ### Files Modified
 - `hyprglass/PKGBUILD`
 - `sway-scroll/` (removed)
 - `packages.conf`
 - `tools/rebuild-triggers.conf`
+- `wlroots0.18/`, `patches/wlroots0.18/` (removed)
+- `CLAUDE.md`
 
 ## 2026.11.13
 
