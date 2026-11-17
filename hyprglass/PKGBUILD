@@ -4,11 +4,11 @@
 # Hyprland commit, and rebuild, on EVERY Hyprland update. A mismatched build is refused
 # at load time and the session runs without it.
 pkgname=hyprglass
-pkgver=1.1.1
-_commit=03a57c4451b4abee38feda2ffb725f55ecc0f2fd   # hyprpm.toml pin for Hyprland 0.57.0
-# pkgrel 4: ships its source and a pacman hook that rebuilds the plugin on the user's system
+pkgver=1.2.0
+_commit=56714382e7ee6a46826bc8586f6d68b662c60c8a   # hyprpm.toml pin for Hyprland 0.57.2
+# Since 1.1.1-4: ships its source and a pacman hook that rebuilds the plugin on the user's system
 # when Hyprland is updated before this package is (see CLAUDE.md, Hyprland plugins)
-pkgrel=4
+pkgrel=1
 pkgdesc="Liquid-glass effect plugin for Hyprland (used by kiro-hyprland-impasto)"
 arch=('x86_64')
 url="https://github.com/hyprnux/hyprglass"

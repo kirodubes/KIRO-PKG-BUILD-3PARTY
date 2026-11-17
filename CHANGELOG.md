@@ -1,5 +1,19 @@
 # Changelog
 
+## 2026.11.17
+
+### What Changed
+- hyprglass 1.2.0 for Hyprland 0.57.2 (what Arch ships now). The rebuild watch flagged the new upstream pin;
+  without this rebuild the glass effect in kiro-hyprland-impasto depends on the on-box hook.
+
+### Technical Details
+- `_commit` set to `56714382` (tag v1.2.0), the `hyprpm.toml` pin for Hyprland commit `11cbc6c5` (v0.57.2);
+  `pkgrel` reset to 1 for the new pkgver. hypr-dynamic-cursors is unchanged: its `hyprpm.toml` still has no
+  0.57.x pin.
+
+### Files Modified
+- `hyprglass/PKGBUILD`
+
 ## 2026.11.13
 
 ### What Changed
