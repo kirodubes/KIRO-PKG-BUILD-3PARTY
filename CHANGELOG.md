@@ -5,14 +5,22 @@
 ### What Changed
 - hyprglass 1.2.0 for Hyprland 0.57.2 (what Arch ships now). The rebuild watch flagged the new upstream pin;
   without this rebuild the glass effect in kiro-hyprland-impasto depends on the on-box hook.
+- sway-scroll removed: chaotic-aur builds it now (request #4009), so Kiro users get it from there and we no
+  longer rebuild it on every libdisplay-info / libliftoff soname bump.
 
 ### Technical Details
 - `_commit` set to `56714382` (tag v1.2.0), the `hyprpm.toml` pin for Hyprland commit `11cbc6c5` (v0.57.2);
   `pkgrel` reset to 1 for the new pkgver. hypr-dynamic-cursors is unchanged: its `hyprpm.toml` still has no
   0.57.x pin.
+- sway-scroll: package dir deleted, its `packages.conf` class dropped, and the two rebuild-watch triggers
+  (libdisplay-info, libliftoff) now name only wlroots0.18. chaotic-aur's sway-scroll (1.12.21-1, same version
+  as ours) vendors its own wlroots, so nothing we ship needs wlroots0.18 for it any more.
 
 ### Files Modified
 - `hyprglass/PKGBUILD`
+- `sway-scroll/` (removed)
+- `packages.conf`
+- `tools/rebuild-triggers.conf`
 
 ## 2026.11.13
 
