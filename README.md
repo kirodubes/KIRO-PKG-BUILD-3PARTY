@@ -25,7 +25,6 @@ Each subdirectory is a self-contained package build: `PKGBUILD`, a `build.sh` wr
 | `pacman-hook-kernel-install`      | Pacman hooks for kernel-install                                           |
 | `pamac-aur`                       | GTK package manager with AUR and Appstream support                        |
 | `sparklines-git`                  | Sparklines for the shell (git)                                            |
-| `ttf-material-design-iconic-font` | Material Design Iconic Font                                               |
 | `wttr`                            | Weather check script via wttr.in                                          |
 
 ---

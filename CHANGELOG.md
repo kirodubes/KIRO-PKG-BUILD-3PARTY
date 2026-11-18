@@ -1,5 +1,23 @@
 # Changelog
 
+## 2026.11.18
+
+### What Changed
+- Six packages removed because chaotic-aur builds them now: caelestia-cli (#4443), cpuid (#4622),
+  ttf-material-design-iconic-font (#4627), ttf-rubik-vf (#4631), volctl (#4621) and wvkbd (#4616). Kiro ships
+  chaotic-aur enabled, so users get them from there, and we no longer rebuild them.
+
+### Technical Details
+- Chaotic-aur ships the same versions as ours, except wvkbd (0.21-1, ours 0.20-1) and volctl (1.0.1-1). Package dirs
+  deleted and their `packages.conf` classes dropped, along with the volctl stale-artifact note. caelestia-shell still
+  depends on caelestia-cli and ttf-rubik-vf; the build chroot has chaotic-aur enabled, so they resolve from there
+  (note in `packages.conf` updated). None of them had rebuild-watch triggers.
+
+### Files Modified
+- `caelestia-cli/`, `cpuid/`, `ttf-material-design-iconic-font/`, `ttf-rubik-vf/`, `volctl/`, `wvkbd/` (removed)
+- `packages.conf`
+- `README.md`
+
 ## 2026.11.17
 
 ### What Changed
