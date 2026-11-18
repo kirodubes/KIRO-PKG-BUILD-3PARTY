@@ -6,17 +6,21 @@
 - Six packages removed because chaotic-aur builds them now: caelestia-cli (#4443), cpuid (#4622),
   ttf-material-design-iconic-font (#4627), ttf-rubik-vf (#4631), volctl (#4621) and wvkbd (#4616). Kiro ships
   chaotic-aur enabled, so users get them from there, and we no longer rebuild them.
+- ckb-next-git removed for the same reason (#4597); chaotic-aur ships the same build (1:0.6.2.r164.ge22eaf2f-1).
 
 ### Technical Details
 - Chaotic-aur ships the same versions as ours, except wvkbd (0.21-1, ours 0.20-1) and volctl (1.0.1-1). Package dirs
   deleted and their `packages.conf` classes dropped, along with the volctl stale-artifact note. caelestia-shell still
   depends on caelestia-cli and ttf-rubik-vf; the build chroot has chaotic-aur enabled, so they resolve from there
-  (note in `packages.conf` updated). None of them had rebuild-watch triggers.
+  (note in `packages.conf` updated). None of them had rebuild-watch triggers; ckb-next-git is dropped from the qt6-base
+  trigger in `tools/rebuild-triggers.conf`.
 
 ### Files Modified
-- `caelestia-cli/`, `cpuid/`, `ttf-material-design-iconic-font/`, `ttf-rubik-vf/`, `volctl/`, `wvkbd/` (removed)
+- `caelestia-cli/`, `cpuid/`, `ttf-material-design-iconic-font/`, `ttf-rubik-vf/`, `volctl/`, `wvkbd/`, `ckb-next-git/`
+  (removed)
 - `packages.conf`
 - `README.md`
+- `tools/rebuild-triggers.conf`
 
 ## 2026.11.17
 

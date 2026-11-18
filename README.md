@@ -15,7 +15,6 @@ Each subdirectory is a self-contained package build: `PKGBUILD`, a `build.sh` wr
 | Package                           | Description                                                               |
 |-----------------------------------|---------------------------------------------------------------------------|
 | `arc-gtk-theme`                   | Flat GTK 2/3/4 theme with transparency; also builds `arc-solid-gtk-theme` |
-| `ckb-next-git`                    | Corsair keyboard and mouse input driver (git)                             |
 | `flameshot-git`                   | Screenshot tool (git)                                                     |
 | `gnome-bluetooth`                 | GNOME Bluetooth subsystem (legacy)                                        |
 | `hardcode-fixer-git`              | Fixes hardcoded application icons (git)                                   |
