@@ -21,7 +21,6 @@ Each subdirectory is a self-contained package build: `PKGBUILD`, a `build.sh` wr
 | `lastpass`                        | Universal LastPass installer for Firefox, Chrome, and Opera               |
 | `libpamac-aur`                    | Pamac package manager library (AUR variant)                               |
 | `opera-ffmpeg-codecs-bin`         | Proprietary FFmpeg codecs for Opera                                       |
-| `pacman-hook-kernel-install`      | Pacman hooks for kernel-install                                           |
 | `pamac-aur`                       | GTK package manager with AUR and Appstream support                        |
 | `sparklines-git`                  | Sparklines for the shell (git)                                            |
 | `wttr`                            | Weather check script via wttr.in                                          |

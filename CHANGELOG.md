@@ -7,6 +7,7 @@
   ttf-material-design-iconic-font (#4627), ttf-rubik-vf (#4631), volctl (#4621) and wvkbd (#4616). Kiro ships
   chaotic-aur enabled, so users get them from there, and we no longer rebuild them.
 - ckb-next-git removed for the same reason (#4597); chaotic-aur ships the same build (1:0.6.2.r164.ge22eaf2f-1).
+- pacman-hook-kernel-install removed for the same reason (#4626); chaotic-aur ships the same build (0.16.0-1).
 
 ### Technical Details
 - Chaotic-aur ships the same versions as ours, except wvkbd (0.21-1, ours 0.20-1) and volctl (1.0.1-1). Package dirs
@@ -16,8 +17,8 @@
   trigger in `tools/rebuild-triggers.conf`.
 
 ### Files Modified
-- `caelestia-cli/`, `cpuid/`, `ttf-material-design-iconic-font/`, `ttf-rubik-vf/`, `volctl/`, `wvkbd/`, `ckb-next-git/`
-  (removed)
+- `caelestia-cli/`, `cpuid/`, `ttf-material-design-iconic-font/`, `ttf-rubik-vf/`, `volctl/`, `wvkbd/`, `ckb-next-git/`,
+  `pacman-hook-kernel-install/` (removed)
 - `packages.conf`
 - `README.md`
 - `tools/rebuild-triggers.conf`
