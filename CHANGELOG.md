@@ -1,5 +1,23 @@
 # Changelog
 
+## 2026.11.20
+
+### What Changed
+- python-pywal16 removed: chaotic-aur builds the same version (1:3.8.15-1), and since nemesis_repo is listed first in
+  pacman.conf our copy was shadowing it. Users now get pywal16 updates from chaotic-aur.
+
+### Technical Details
+- Package dir and the Kiro local delta `patches/python-pywal16/0001-kiro-replaces-python-pywal.patch` deleted, its
+  `packages.conf` class and note dropped, and the `python` minor trigger removed from `tools/rebuild-triggers.conf`
+  (pywal16 was its only rebuild). chaotic-aur's build has no `replaces=('python-pywal')`, so the old pywal is no
+  longer auto-swapped on -Syu. CLAUDE.md now lists caelestia-shell as the only local delta.
+
+### Files Modified
+- `python-pywal16/`, `patches/python-pywal16/` (removed)
+- `packages.conf`
+- `tools/rebuild-triggers.conf`
+- `CLAUDE.md`
+
 ## 2026.11.18
 
 ### What Changed
