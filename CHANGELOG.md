@@ -1,5 +1,26 @@
 # Changelog
 
+## 2026.11.21
+
+### What Changed
+- **chwd retired.** The Kiro ISO stopped shipping it on 2026-11-03, when `kiro-hwd` (Kiro's own NVIDIA picker, which
+  mirrors only chwd's PCI ID lists) replaced it in the installer. The patched 1.23.0 build had no users left, and it
+  could never move up: upstream 1.24.0 through 1.25.0 still link `chwd-kernel` against
+  `alpm_pkg_get_installed_db()`, which Arch's libalpm doesn't have. Both Kiro patches (nvidia-open via DKMS, the
+  convertible chassis type 31) went with it; the second is upstream since 86a0dbd anyway.
+
+### Technical Details
+- Recipe dir `chwd/` removed, its `local` class and pin note dropped from `packages.conf`, and `chwd` taken out of
+  the `pacman` soname trigger in `tools/rebuild-triggers.conf` (`libpamac-aur` and `pamac-aur` stay).
+- `chwd-1.23.0-2` removed from nemesis_repo the same day. Installed systems that have it keep it; the `[cachyos]`
+  repo still carries upstream chwd for anyone who wants it.
+
+### Files Modified
+- `chwd/` (removed)
+- `packages.conf`
+- `tools/rebuild-triggers.conf`
+- `CHANGELOG.md`
+
 ## 2026.11.20
 
 ### What Changed
